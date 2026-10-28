@@ -1,47 +1,49 @@
 from flask import Flask, jsonify, send_from_directory
-import sqlite3
 import os
-
-from database.schema import create_database
-from database.db_manager import add_player
+import sqlite3
 
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "efootball.db")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# Create the database when the app starts
-create_database(DB_PATH)
+USE_POSTGRES = bool(DATABASE_URL)
 
+if USE_POSTGRES:
+    from database import postgres_db
 
-def seed_players():
-    with sqlite3.connect(DB_PATH) as db:
-        db.execute("""
-            INSERT INTO players
-                (name, nationality, club, position, rating, image)
-            SELECT ?, ?, ?, ?, ?, ?
-            WHERE NOT EXISTS (
-                SELECT 1 FROM players WHERE name = ?
-            )
-        """, (
-            "Lionel Messi", "Argentina", "Inter Miami", "RWF", 88, "",
-            "Lionel Messi"
-        ))
+    postgres_db.create_tables()
+    postgres_db.seed_players()
+else:
+    from database.schema import create_database
 
-        db.execute("""
-            INSERT INTO players
-                (name, nationality, club, position, rating, image)
-            SELECT ?, ?, ?, ?, ?, ?
-            WHERE NOT EXISTS (
-                SELECT 1 FROM players WHERE name = ?
-            )
-        """, (
-            "Cristiano Ronaldo", "Portugal", "Al Nassr", "CF", 95,
-            "/assets/players/ronaldo.png", "Cristiano Ronaldo"
-        ))
+    create_database(DB_PATH)
 
+    def seed_sqlite_players():
+        players = [
+            (
+                "Lionel Messi", "Argentina", "Inter Miami",
+                "RWF", 88, ""
+            ),
+            (
+                "Cristiano Ronaldo", "Portugal", "Al Nassr",
+                "CF", 95, "/assets/players/ronaldo.png"
+            ),
+        ]
 
-seed_players()
+        with sqlite3.connect(DB_PATH) as db:
+            for player in players:
+                db.execute("""
+                    INSERT INTO players
+                        (name, nationality, club, position, rating, image)
+                    SELECT ?, ?, ?, ?, ?, ?
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM players WHERE name = ?
+                    )
+                """, player + (player[0],))
+
+    seed_sqlite_players()
 
 
 @app.route("/")
@@ -67,6 +69,17 @@ def serve_assets(filename):
 
 @app.route("/api/players")
 def players():
+    if USE_POSTGRES:
+        with postgres_db.get_connection() as db:
+            rows = db.execute("""
+                SELECT id, name, nationality, club, position, rating,
+                       level, playing_style, card_type, image
+                FROM players
+                ORDER BY rating DESC
+            """).fetchall()
+
+        return jsonify(rows)
+
     with sqlite3.connect(DB_PATH) as db:
         db.row_factory = sqlite3.Row
         rows = db.execute("""
