@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eFOOTBALL HUB</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080b12;color:#fff;font-family:Arial,sans-serif}
+header{padding:22px 16px;background:linear-gradient(135deg,#142c25,#080b12);border-bottom:2px solid #42ff9b}
+.logo{font-size:26px;font-weight:900;color:#42ff9b}
+.logo span{color:white}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+select,input{padding:12px;border-radius:10px;border:1px solid #34443e;background:#111923;color:white}
+main{padding:18px;max-width:900px;margin:auto}
+h2{margin-top:25px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:#111923;border:1px solid #253b32;padding:15px;border-radius:12px;text-align:center}
+.stat b{display:block;color:#42ff9b;font-size:24px}
+.search{width:100%;margin:20px 0}
+.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card{background:linear-gradient(145deg,#17251f,#111722);border:1px solid #42ff9b;border-radius:16px;padding:18px;position:relative;overflow:hidden}
+.ovr{font-size:38px;font-weight:900;color:#42ff9b}
+.position{font-size:13px;color:#c7d6ce}
+.name{font-size:21px;font-weight:bold;margin:12px 0}
+.info{color:#b9c6c0;line-height:1.9;font-size:14px}
+.badge{display:inline-block;background:#244c39;padding:5px 9px;border-radius:7px;font-size:12px;margin-top:10px}
+footer{text-align:center;color:#718078;padding:25px}
+.empty{color:#bbb;text-align:center;padding:25px;display:none}
+.player-image {
+    width: 100%;
+    height: 180px;
+    margin: 10px 0;
+    overflow: hidden;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #17251f, #111722);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+</style>
+</head>
+<body>
+<header>
+<div class="top">
+<div class="logo">eFOOTBALL <span>HUB</span></div>
+<select id="language" aria-label="Language">
+<option value="uz">🇺🇿 O‘zbekcha</option>
+<option value="en">🇬🇧 English</option>
+<option value="ru">🇷🇺 Русский</option>
+<option value="pt">🇧🇷 Português</option>
+<option value="es">🇪🇸 Español</option>
+<option value="fr">🇫🇷 Français</option>
+<option value="de">🇩🇪 Deutsch</option>
+<option value="it">🇮🇹 Italiano</option>
+<option value="tr">🇹🇷 Türkçe</option>
+<option value="ar">🇸🇦 العربية</option>
+<option value="zh">🇨🇳 中文</option>
+<option value="ja">🇯🇵 日本語</option>
+<option value="ko">🇰🇷 한국어</option>
+<option value="hi">🇮🇳 हिन्दी</option>
+<option value="id">🇮🇩 Bahasa Indonesia</option>
+</select>
+</div>
+<p id="subtitle">Futbolchilar dunyosi — barchasi bir joyda!</p>
+</header>
+
+<main>
+<h2 id="heading">⚽ Futbolchilar</h2>
+<div class="stats">
+<div class="stat"><b id="count">2</b><span id="playersLabel">Futbolchilar</span></div>
+<div class="stat"><b>95</b><span id="ratingLabel">Eng yuqori OVR</span></div>
+<div class="stat"><b>15</b><span id="languagesLabel">Tillar</span></div>
+</div>
+
+<input class="search" id="search" type="search" placeholder="Futbolchi qidirish...">
+
+<div class="players" id="players">
+<article class="card" data-id="1" data-name="lionel messi argentina">>
+<div class="ovr">88 <span class="position">RWF</span></div>
+<div class="name">Lionel Messi</div>
+<div class="info">
+<span class="nationality">Millati</span>: Argentina<br>
+<span class="clubLabel">Klub</span>: Inter Miami<br>
+<span class="positionLabel">Pozitsiya</span>: RWF<br>
+<span class="ratingText">Reyting</span>: 88
+</div>
+<span class="badge">Standard</span>
+</article>
+<article class="card" data-id="2" data-name="cristiano ronaldo portugal">
+<article class="card">
+<div class="ovr">95 <span class="position">CF</span></div>
+<div class="name">Cristiano Ronaldo</div>
+<div class="info">
+<span class="nationality">Millati</span>: Portugal<br>
+<span class="clubLabel">Klub</span>: Al Nassr<br>
+<span class="positionLabel">Pozitsiya</span>: CF<br>
+<span class="ratingText">Reyting</span>: 95
+</div>
+<span class="badge">Standard</span>
+</article>
+</div>
+<div class="empty" id="empty">Futbolchi topilmadi</div>
+</main>
+
+<footer>eFOOTBALL HUB • Football is life ⚽</footer>
+
+<script>
+const translations = {
+  uz:{subtitle:"Futbolchilar dunyosi — barchasi bir joyda!",heading:"⚽ Futbolchilar",players:"Futbolchilar",rating:"Eng yuqori OVR",languages:"Tillar",search:"Futbolchi qidirish...",nationality:"Millati",club:"Klub",position:"Pozitsiya",ratingText:"Reyting",empty:"Futbolchi topilmadi",standard:"Oddiy"},
+  en:{subtitle:"The world of footballers — all in one place!",heading:"⚽ Players",players:"Players",rating:"Highest OVR",languages:"Languages",search:"Search players...",nationality:"Nationality",club:"Club",position:"Position",ratingText:"Rating",empty:"No players found",standard:"Standard"},
+  ru:{subtitle:"Мир футболистов — всё в одном месте!",heading:"⚽ Футболисты",players:"Футболисты",rating:"Максимальный OVR",languages:"Языки",search:"Поиск футболиста...",nationality:"Страна",club:"Клуб",position:"Позиция",ratingText:"Рейтинг",empty:"Футболисты не найдены",standard:"Стандарт"},
+  pt:{subtitle:"O mundo do futebol — tudo em um só lugar!",heading:"⚽ Jogadores",players:"Jogadores",rating:"Maior OVR",languages:"Idiomas",search:"Pesquisar jogadores...",nationality:"Nacionalidade",club:"Clube",position:"Posição",ratingText:"Nota",empty:"Nenhum jogador encontrado",standard:"Padrão"},
+  es:{subtitle:"El mundo del fútbol, todo en un solo lugar!",heading:"⚽ Jugadores",players:"Jugadores",rating:"OVR más alto",languages:"Idiomas",search:"Buscar jugadores...",nationality:"Nacionalidad",club:"Club",position:"Posición",ratingText:"Valoración",empty:"No se encontraron jugadores",standard:"Estándar"},
+  fr:{subtitle:"Le monde du football, tout au même endroit !",heading:"⚽ Joueurs",players:"Joueurs",rating:"OVR maximum",languages:"Langues",search:"Rechercher un joueur...",nationality:"Nationalité",club:"Club",position:"Poste",ratingText:"Note",empty:"Aucun joueur trouvé",standard:"Standard"},
+  de:{subtitle:"Die Welt des Fußballs — alles an einem Ort!",heading:"⚽ Spieler",players:"Spieler",rating:"Höchster OVR",languages:"Sprachen",search:"Spieler suchen...",nationality:"Nationalität",club:"Verein",position:"Position",ratingText:"Bewertung",empty:"Keine Spieler gefunden",standard:"Standard"},
+  it:{subtitle:"Il mondo del calcio, tutto in un unico posto!",heading:"⚽ Giocatori",players:"Giocatori",rating:"OVR più alto",languages:"Lingue",search:"Cerca giocatori...",nationality:"Nazionalità",club:"Club",position:"Posizione",ratingText:"Valutazione",empty:"Nessun giocatore trovato",standard:"Standard"},
+  tr:{subtitle:"Futbol dünyası — hepsi tek bir yerde!",heading:"⚽ Futbolcular",players:"Futbolcular",rating:"En yüksek OVR",languages:"Diller",search:"Futbolcu ara...",nationality:"Milliyet",club:"Kulüp",position:"Pozisyon",ratingText:"Puan",empty:"Futbolcu bulunamadı",standard:"Standart"},
+  ar:{subtitle:"عالم كرة القدم — كل شيء في مكان واحد!",heading:"⚽ اللاعبون",players:"اللاعبون",rating:"أعلى تقييم",languages:"اللغات",search:"ابحث عن لاعب...",nationality:"الجنسية",club:"النادي",position:"المركز",ratingText:"التقييم",empty:"لم يتم العثور على لاعبين",standard:"قياسي"},
+  zh:{subtitle:"足球世界，一切尽在一处！",heading:"⚽ 球员",players:"球员",rating:"最高评分",languages:"语言",search:"搜索球员...",nationality:"国籍",club:"俱乐部",position:"位置",ratingText:"评分",empty:"未找到球员",standard:"标准"},
+  ja:{subtitle:"サッカー選手の世界、すべてここに！",heading:"⚽ 選手",players:"選手",rating:"最高OVR",languages:"言語",search:"選手を検索...",nationality:"国籍",club:"クラブ",position:"ポジション",ratingText:"評価",empty:"選手が見つかりません",standard:"スタンダード"},
+  ko:{subtitle:"축구 선수의 세계, 모든 것을 한곳에서!",heading:"⚽ 선수",players:"선수",rating:"최고 OVR",languages:"언어",search:"선수 검색...",nationality:"국적",club:"클럽",position:"포지션",ratingText:"평점",empty:"선수를 찾을 수 없습니다",standard:"스탠다드"},
+  hi:{subtitle:"फुटबॉल की दुनिया — सब कुछ एक जगह!",heading:"⚽ खिलाड़ी",players:"खिलाड़ी",rating:"सबसे अधिक OVR",languages:"भाषाएँ",search:"खिलाड़ी खोजें...",nationality:"राष्ट्रीयता",club:"क्लब",position:"पोज़िशन",ratingText:"रेटिंग",empty:"कोई खिलाड़ी नहीं मिला",standard:"स्टैंडर्ड"},
+  id:{subtitle:"Dunia sepak bola — semua dalam satu tempat!",heading:"⚽ Pemain",players:"Pemain",rating:"OVR tertinggi",languages:"Bahasa",search:"Cari pemain...",nationality:"Kebangsaan",club:"Klub",position:"Posisi",ratingText:"Rating",empty:"Pemain tidak ditemukan",standard:"Standar"}
+};
+
+const language = document.getElementById("language");
+const search = document.getElementById("search");
+let cards = [];
+
+function changeLanguage() {
+  const lang = language.value;
+  const t = translations[lang] || translations.uz;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.getElementById("subtitle").textContent = t.subtitle;
+  document.getElementById("heading").textContent = t.heading;
+  document.getElementById("playersLabel").textContent = t.players;
+  document.getElementById("ratingLabel").textContent = t.rating;
+  document.getElementById("languagesLabel").textContent = t.languages;
+  search.placeholder = t.search;
+  document.getElementById("empty").textContent = t.empty;
+  document.querySelectorAll(".nationality").forEach(e => e.textContent = t.nationality);
+  document.querySelectorAll(".clubLabel").forEach(e => e.textContent = t.club);
+  document.querySelectorAll(".positionLabel").forEach(e => e.textContent = t.position);
+  document.querySelectorAll(".ratingText").forEach(e => e.textContent = t.ratingText);
+  document.querySelectorAll(".badge").forEach(e => e.textContent = t.standard);
+}
+
+function filterPlayers() {
+  const query = search.value.toLowerCase().trim();
+  let visible = 0;
+  cards.forEach(card => {
+    const match = (card.dataset.name + " " + card.innerText).toLowerCase().includes(query);
+    card.style.display = match ? "block" : "none";
+    if (match) visible++;
+  });
+  document.getElementById("count").textContent = visible;
+  document.getElementById("empty").style.display = visible ? "none" : "block";
+}
+
+language.addEventListener("change", changeLanguage);
+search.addEventListener("input", filterPlayers);
+
+async function loadPlayersFromDatabase() {
+  try {
+    const response = await fetch("/api/players");
+    if (!response.ok) throw new Error("API xatosi: " + response.status);
+    const players = await response.json();
+    const container = document.getElementById("players");
+
+    container.innerHTML = players.map(player => `
+      <article class="card" data-name="${player.name} ${player.nationality} ${player.club}">
+        <div class="ovr">${player.rating}
+          <span class="position">${player.position}</span>
+        </div>
+        ${player.image ? `<div class="player-image"><img src="${player.image}" alt="${player.name}" onerror="this.parentElement.style.display='none'"></div>` : ""}
+        <div class="name">${player.name}</div>
+        <div class="info">
+          <span class="nationality">Millati</span>: ${player.nationality}<br>
+          <span class="clubLabel">Klub</span>: ${player.club}<br>
+          <span class="positionLabel">Pozitsiya</span>: ${player.position}<br>
+          <span class="ratingText">Reyting</span>: ${player.rating}
+        </div>
+        <span class="badge">Standard</span>
+      </article>
+    `).join("");
+
+   cards = [...container.querySelectorAll(".card")];
+   cards.forEach(card => {
+  card.style.cursor = "pointer";
+  card.addEventListener("click", () => {
+    window.location.href = `/player?id=${card.dataset.id}`;
+  });
+});
+ changeLanguage();
+    filterPlayers();
+  } catch (error) {
+    console.error("Futbolchilarni yuklashda xato:", error);
+  }
+}
+
+changeLanguage();
+loadPlayersFromDatabase();
+</script>
+</body>
+</html>
