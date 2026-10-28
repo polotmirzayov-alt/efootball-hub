@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 import os
 import sqlite3
 
@@ -92,6 +92,84 @@ def players():
         """).fetchall()
 
     return jsonify([dict(row) for row in rows])
+
+
+@app.route("/api/import-player", methods=["POST"])
+def import_player():
+    import hmac
+
+    if not USE_POSTGRES:
+        return jsonify({"error": "PostgreSQL talab qilinadi"}), 503
+
+    token = os.environ.get("ADMIN_TOKEN", "")
+    supplied = request.headers.get("Authorization", "")
+    if not token or not hmac.compare_digest(
+        supplied, "Bearer " + token
+    ):
+        return jsonify({"error": "Ruxsat berilmadi"}), 401
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "JSON ma'lumot yuboring"}), 400
+
+    efootball_id = str(data.get("efootball_id", "")).strip()
+    name = str(data.get("name", "")).strip()
+
+    if not efootball_id.isdigit() or not name:
+        return jsonify({
+            "error": "efootball_id raqam, name esa bo'sh bo'lmasin"
+        }), 400
+
+    if len(efootball_id) > 30 or len(name) > 120:
+        return jsonify({"error": "Maydon uzunligi oshib ketdi"}), 400
+
+    try:
+        rating = int(data.get("rating", 0))
+        level = int(data.get("level", 1))
+    except (TypeError, ValueError):
+        return jsonify({"error": "rating va level son bo'lishi kerak"}), 400
+
+    if not 0 <= rating <= 200 or not 1 <= level <= 100:
+        return jsonify({"error": "rating yoki level chegaradan tashqarida"}), 400
+
+    player = {
+        "efootball_id": efootball_id,
+        "name": name,
+        "nationality": str(data.get("nationality", ""))[:80],
+        "club": str(data.get("club", ""))[:120],
+        "position": str(data.get("position", ""))[:30],
+        "rating": rating,
+        "level": level,
+        "playing_style": str(data.get("playing_style", ""))[:100],
+        "card_type": str(data.get("card_type", "Standard"))[:80],
+        "image": str(data.get("image", ""))[:500],
+    }
+
+    try:
+        with postgres_db.get_connection() as db:
+            existing = db.execute(
+                "SELECT id FROM players WHERE efootball_id = %s",
+                (efootball_id,)
+            ).fetchone()
+
+            if existing:
+                return jsonify({"error": "Bu eFootball ID oldin saqlangan"}), 409
+
+            row = db.execute("""
+                INSERT INTO players
+                    (efootball_id, name, nationality, club, position,
+                     rating, level, playing_style, card_type, image)
+                VALUES
+                    (%(efootball_id)s, %(name)s, %(nationality)s, %(club)s,
+                     %(position)s, %(rating)s, %(level)s, %(playing_style)s,
+                     %(card_type)s, %(image)s)
+                RETURNING id, efootball_id, name
+            """, player).fetchone()
+
+        return jsonify({"message": "Futbolchi saqlandi", "player": row}), 201
+    except Exception:
+        app.logger.exception("Futbolchini saqlashda xato")
+        return jsonify({"error": "Bazaga saqlash amalga oshmadi"}), 500
 
 
 if __name__ == "__main__":

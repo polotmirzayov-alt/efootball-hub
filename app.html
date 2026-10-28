@@ -81,6 +81,53 @@ footer{text-align:center;color:#718078;padding:25px}
 
 <input class="search" id="search" type="search" placeholder="Futbolchi qidirish...">
 
+<section class="import-panel">
+  <h3>➕ Import by ID</h3>
+  <p>Futbolchi ma’lumotlarini kiriting va bazaga saqlang.</p>
+  <form id="importPlayerForm">
+    <label>Admin token
+      <input id="importToken" type="password" autocomplete="off" required>
+    </label>
+    <label>eFootball ID
+      <input id="importId" inputmode="numeric" pattern="[0-9]+" maxlength="30" required>
+    </label>
+    <label>Futbolchi ismi
+      <input id="importName" maxlength="120" required>
+    </label>
+    <label>Millati
+      <input id="importNationality" maxlength="80">
+    </label>
+    <label>Klubi
+      <input id="importClub" maxlength="120">
+    </label>
+    <label>Pozitsiyasi
+      <input id="importPosition" maxlength="30" placeholder="CF, RWF, AMF...">
+    </label>
+    <label>OVR
+      <input id="importRating" type="number" min="0" max="200" value="0" required>
+    </label>
+    <label>Karta turi
+      <input id="importCardType" maxlength="80" value="Standard">
+    </label>
+    <label>Karta rasmi URL
+      <input id="importImage" type="url" maxlength="500" placeholder="https://...">
+    </label>
+    <button type="submit">💾 Bazaga saqlash</button>
+    <p id="importStatus" role="status" aria-live="polite"></p>
+  </form>
+</section>
+
+<style>
+.import-panel{margin:18px 0;padding:18px;border:1px solid #42ff9b;border-radius:16px;background:#111923}
+.import-panel h3{color:#42ff9b;margin-top:0}
+.import-panel form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.import-panel label{display:flex;flex-direction:column;gap:6px;color:#c7d6ce;font-size:14px}
+.import-panel input{width:100%;min-width:0}
+.import-panel button{padding:12px;border:0;border-radius:10px;background:#42ff9b;color:#08120c;font-weight:bold;cursor:pointer}
+#importStatus{grid-column:1/-1;overflow-wrap:anywhere}
+</style>
+
+
 <div class="players" id="players">
 <article class="card" data-id="1" data-name="lionel messi argentina">>
 <div class="ovr">88 <span class="position">RWF</span></div>
@@ -205,6 +252,57 @@ async function loadPlayersFromDatabase() {
     console.error("Futbolchilarni yuklashda xato:", error);
   }
 }
+
+
+document.getElementById("importPlayerForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const status = document.getElementById("importStatus");
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  const value = id => document.getElementById(id).value.trim();
+
+  const payload = {
+    efootball_id: value("importId"),
+    name: value("importName"),
+    nationality: value("importNationality"),
+    club: value("importClub"),
+    position: value("importPosition"),
+    rating: Number(value("importRating")),
+    card_type: value("importCardType") || "Standard",
+    image: value("importImage")
+  };
+
+  if (!/^\d+$/.test(payload.efootball_id)) {
+    status.textContent = "eFootball ID faqat raqamlardan iborat bo‘lishi kerak.";
+    return;
+  }
+
+  button.disabled = true;
+  status.textContent = "Saqlanmoqda...";
+
+  try {
+    const response = await fetch("/api/import-player", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + value("importToken")
+      },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Saqlash amalga oshmadi.");
+    }
+
+    status.textContent = "Saqlandi: " + result.player.name;
+    event.currentTarget.reset();
+    await loadPlayersFromDatabase();
+  } catch (error) {
+    status.textContent = "Xato: " + error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
 
 changeLanguage();
 loadPlayersFromDatabase();

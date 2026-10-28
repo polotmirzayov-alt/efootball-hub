@@ -63,6 +63,17 @@ def create_tables():
         """)
 
 
+        db.execute("""
+            ALTER TABLE players
+            ADD COLUMN IF NOT EXISTS efootball_id TEXT
+        """)
+        db.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_players_efootball_id
+            ON players (efootball_id)
+            WHERE efootball_id IS NOT NULL AND efootball_id != ''
+        """)
+
+
 def seed_players():
     players = [
         {
