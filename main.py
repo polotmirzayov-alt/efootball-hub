@@ -15,6 +15,8 @@ if USE_POSTGRES:
 
     postgres_db.create_tables()
     postgres_db.seed_players()
+    from database.add_content_tables import create_content_tables
+    create_content_tables()
 else:
     from database.schema import create_database
 
