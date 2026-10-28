@@ -176,7 +176,7 @@ async function loadPlayersFromDatabase() {
     const container = document.getElementById("players");
 
     container.innerHTML = players.map(player => `
-      <article class="card" data-name="${player.name} ${player.nationality} ${player.club}">
+      <article class="card" data-id="${player.id}" data-name="${player.name} ${player.nationality} ${player.club}">
         <div class="ovr">${player.rating}
           <span class="position">${player.position}</span>
         </div>
