@@ -88,8 +88,12 @@ button,.select{background:#243447;color:#fff;border:1px solid #3b5065;border-rad
 
   <section id="builds" class="panel hidden">
     <h3 class="section-title">PLAYER BUILDS</h3>
-    <p class="muted">Bu bo‘limda futbolchini kuchaytirish uchun ochkolar taqsimoti qo‘shiladi.</p>
+    <p class="muted" id="buildStatus">BUILD MASTER ma’lumotlari yuklanmoqda...</p>
     <div class="grid" id="buildGrid" style="margin-top:10px"></div>
+    <h3 class="section-title">HIGHLIGHTS</h3>
+    <div class="badges" id="highlightsGrid"></div>
+    <h3 class="section-title">MASLAHAT</h3>
+    <p id="buildTip" class="muted">Hali maslahat kiritilmagan.</p>
   </section>
 
   <section id="skills" class="panel hidden">
@@ -156,15 +160,47 @@ async function loadProfile(){
       ["Karta turi",p.card_type||"Standard"]
     ].map(([a,b])=>`<div class="stat">${a}<br><strong>${b}</strong></div>`).join("");
 
-    const rating=Number(p.rating)||70;
-    const sampleStats=[
-      ["Hujum",rating-3],["To‘p nazorati",rating-1],["Dribling",rating],
-      ["Pas",rating-2],["Zarba",rating-1],["Tezlik",rating-4],
-      ["Tezlanish",rating-2],["Jismoniy kuch",rating-8],
-      ["Chidamlilik",rating-5],["Himoya",Math.max(40,rating-20)]
-    ];
-    $("statsGrid").innerHTML=sampleStats.map(([a,b])=>addStat(a,b)).join("");
-    $("buildGrid").innerHTML=[["Dribling",8],["Pas",8],["Zarba",8],["Tezlik",8],["Kuch",4],["Himoya",0]].map(([a,b])=>addStat(a,b)).join("");
+    $("statsGrid").innerHTML =
+      '<p class="muted">Batafsil futbolchi statistikasi hali bazaga kiritilmagan.</p>';
+
+    $("buildGrid").innerHTML = "";
+    $("highlightsGrid").innerHTML = "";
+    $("buildTip").textContent = "Hali maslahat kiritilmagan.";
+
+    try {
+      const response = await fetch(`/api/players/${encodeURIComponent(p.id)}/build`);
+      if (!response.ok) throw new Error("Build API xatosi");
+
+      const build = await response.json();
+      const stats = build.stats || {};
+      const entries = Object.entries(stats);
+
+      if (entries.length) {
+        $("buildGrid").innerHTML = entries
+          .map(([label, value]) => addStat(label, value)).join("");
+        $("buildStatus").textContent = "Saqlangan BUILD MASTER statistikasi.";
+      } else {
+        $("buildStatus").textContent = "Hali build statistikasi saqlanmagan.";
+      }
+
+      const highlights = Array.isArray(build.highlights) ? build.highlights : [];
+      for (const item of highlights) {
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = item;
+        $("highlightsGrid").appendChild(badge);
+      }
+
+      if (!highlights.length) {
+        $("highlightsGrid").textContent = "Hali highlights kiritilmagan.";
+      }
+
+      $("buildTip").textContent = build.tip || "Hali maslahat kiritilmagan.";
+    } catch (error) {
+      console.error("BUILD MASTER xatosi:", error);
+      $("buildStatus").textContent = "BUILD MASTER ma’lumotlarini yuklab bo‘lmadi.";
+      $("highlightsGrid").textContent = "Ma’lumotlar hozircha mavjud emas.";
+    }
     $("skillsGrid").innerHTML=["Double Touch","Sole Control","One-touch Pass","First-time Shot","Outside Curler"].map(s=>`<span class="badge">${s}</span>`).join("");
     $("positionsGrid").innerHTML=["CF","SS","AMF","LWF","RWF","CMF","DMF","CB","GK"].map((pos,i)=>{
       const score=pos===p.position?rating:Math.max(40,rating-[4,2,0,3,3,8,15,25,45][i]);
