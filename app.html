@@ -295,7 +295,7 @@ document.getElementById("importPlayerForm").addEventListener("submit", async eve
     }
 
     status.textContent = "Saqlandi: " + result.player.name;
-    event.currentTarget.reset();
+    document.getElementById("importPlayerForm").reset();
     await loadPlayersFromDatabase();
   } catch (error) {
     status.textContent = "Xato: " + error.message;
