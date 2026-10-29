@@ -86,6 +86,11 @@ def hub_home():
 
     html = HUB_HTML.replace('action="/"', 'action="/hub"')
     html = html.replace('href="/?player=', 'href="/hub?player=')
+    html = html.replace(
+        '<footer>',
+        '<p style="text-align:center"><a href="/hub/cards">⚽ Bazadagi barcha kartalarni ko‘rish</a></p><footer>',
+        1
+    )
 
     return render_template_string(
         html,
@@ -907,6 +912,87 @@ def admin_stats():
     except Exception:
         app.logger.exception("Admin statistikasida xato")
         return jsonify({"error": "Statistikani olib bo‘lmadi"}), 500
+
+
+
+@app.route("/hub/cards", methods=["GET"])
+def hub_cards():
+    query = """
+        SELECT
+            pc.id AS card_id,
+            pc.card_name,
+            pc.card_type,
+            pc.rating AS card_rating,
+            pc.position AS card_position,
+            pc.playing_style AS card_style,
+            pc.image AS card_image,
+            pc.release_date,
+            p.name AS player_name,
+            p.nationality,
+            p.club
+        FROM player_cards pc
+        JOIN players p ON p.id = pc.player_id
+        ORDER BY pc.rating DESC, pc.id DESC
+    """
+    try:
+        if USE_POSTGRES:
+            with postgres_db.get_connection() as db:
+                cards = db.execute(query).fetchall()
+        else:
+            with sqlite3.connect(DB_PATH) as db:
+                db.row_factory = sqlite3.Row
+                cards = [dict(row) for row in db.execute(query).fetchall()]
+
+        html = """
+        <!doctype html>
+        <html lang="uz">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>eFootball Hub — Kartalar</title>
+          <style>
+            body{margin:0;padding:20px;background:#080b13;color:#f4f6ff;
+                 font-family:Arial,sans-serif}
+            h1{color:#ffd45c}
+            .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+            .card{background:#141b2b;border:1px solid #303b52;border-radius:14px;padding:16px}
+            .rating{font-size:30px;font-weight:bold;color:#ffd45c}
+            .muted{color:#b6c0d4;line-height:1.6}
+            a{color:#ffd45c}
+            .empty{padding:18px;border:1px dashed #59647a;border-radius:12px}
+          </style>
+        </head>
+        <body>
+          <p><a href="/hub">← Eski HUB sahifasi</a></p>
+          <h1>⚽ eFootball kartalari</h1>
+          <p class="muted">Bazadagi kartalar: {{ cards|length }}</p>
+          {% if cards %}
+          <div class="grid">
+            {% for c in cards %}
+            <article class="card">
+              <div class="rating">{{ c.card_rating }} OVR</div>
+              <h2>{{ c.card_name }}</h2>
+              <p class="muted">{{ c.player_name }}</p>
+              <p class="muted">{{ c.card_type }} · {{ c.card_position }}</p>
+              <p class="muted">{{ c.nationality or 'Millat kiritilmagan' }}<br>
+              {{ c.club or 'Klub kiritilmagan' }}<br>
+              {{ c.card_style or 'O‘yin uslubi kiritilmagan' }}</p>
+              {% if c.release_date %}
+              <p class="muted">Chiqarilgan sana: {{ c.release_date }}</p>
+              {% endif %}
+            </article>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty">Hozircha bazada karta yo‘q.</div>
+          {% endif %}
+        </body>
+        </html>
+        """
+        return render_template_string(html, cards=cards)
+    except Exception:
+        app.logger.exception("HUB kartalarini yuklashda xato")
+        return jsonify({"error": "Kartalarni yuklab bo‘lmadi"}), 500
 
 
 if __name__ == "__main__":
