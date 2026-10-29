@@ -741,6 +741,8 @@ async function refreshAdminPlayers() {
           const current = detailsResponse;
 
           const template = {
+            physics: current.physics || {},
+            roles: current.roles || {},
             base_ovr: current.base_ovr ?? null,
             max_ovr: current.max_ovr ?? null,
             height_cm: current.height_cm ?? null,
@@ -751,8 +753,6 @@ async function refreshAdminPlayers() {
             skills: current.skills || [],
             boosters: current.boosters || [],
             max_build: current.max_build || {},
-            physics: current.physics || {},
-            roles: current.roles || {},
             source: current.source || selectedCard.source || "manual"
           };
 
