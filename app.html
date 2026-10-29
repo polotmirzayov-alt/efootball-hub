@@ -374,6 +374,184 @@ function adminText(tag, className, text) {
   return element;
 }
 
+
+let buildMasterModal = null;
+
+function ensureBuildMasterModal() {
+  if (buildMasterModal) return buildMasterModal;
+
+  const style = document.createElement("style");
+  style.textContent = `
+    #buildMasterModal { position:fixed; inset:0; z-index:9999; display:none;
+      align-items:center; justify-content:center; padding:16px;
+      background:rgba(0,0,0,.82); overflow:auto; }
+    #buildMasterModal .bm-box { width:min(680px,100%); max-height:90vh;
+      overflow:auto; padding:20px; border:1px solid #42ff9b;
+      border-radius:16px; background:#111923; color:#e8f4ee; }
+    #buildMasterModal label { display:block; margin:12px 0 6px; }
+    #buildMasterModal select,#buildMasterModal textarea {
+      box-sizing:border-box; width:100%; padding:11px; border-radius:8px;
+      border:1px solid #49665a; background:#0b1118; color:#fff; font:inherit; }
+    #buildMasterModal textarea { min-height:110px; resize:vertical; }
+    #buildMasterModal .bm-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    #buildMasterModal button { padding:10px 14px; cursor:pointer; }
+    #buildMasterModal [role=status] { overflow-wrap:anywhere; }
+  `;
+  document.head.appendChild(style);
+
+  const modal = document.createElement("div");
+  modal.id = "buildMasterModal";
+  modal.innerHTML = `
+    <section class="bm-box" role="dialog" aria-modal="true"
+      aria-labelledby="bmTitle">
+      <h2 id="bmTitle">⚙️ BUILD MASTER</h2>
+      <p>Har bir karta uchun alohida ma’lumotlar saqlanadi.</p>
+      <label for="bmCard">Karta</label>
+      <select id="bmCard"></select>
+      <label for="bmStats">Statistika (JSON)</label>
+      <textarea id="bmStats" spellcheck="false"
+        placeholder='{"Speed":95,"Finishing":90}'></textarea>
+      <label for="bmHighlights">Highlights (JSON ro‘yxat)</label>
+      <textarea id="bmHighlights" spellcheck="false"
+        placeholder='["Bullet Header","Long-Range Curler"]'></textarea>
+      <label for="bmTip">Karta uchun maslahat</label>
+      <textarea id="bmTip" placeholder="Maslahatni kiriting..."></textarea>
+      <p id="bmStatus" role="status" aria-live="polite"></p>
+      <div class="bm-actions">
+        <button type="button" id="bmSave">💾 Saqlash</button>
+        <button type="button" id="bmClose">Yopish</button>
+      </div>
+    </section>`;
+  document.body.appendChild(modal);
+
+  modal.querySelector("#bmClose").addEventListener("click", () => {
+    modal.style.display = "none";
+  });
+  modal.addEventListener("click", event => {
+    if (event.target === modal) modal.style.display = "none";
+  });
+  modal.querySelector("#bmCard").addEventListener("change", () => {
+    loadBuildMasterForm().catch(showBuildMasterError);
+  });
+  modal.querySelector("#bmSave").addEventListener("click", saveBuildMasterForm);
+
+  buildMasterModal = modal;
+  return modal;
+}
+
+function showBuildMasterError(error) {
+  const status = document.querySelector("#buildMasterModal #bmStatus");
+  if (status) status.textContent = "Xato: " + error.message;
+}
+
+async function openBuildMasterEditor(player) {
+  const modal = ensureBuildMasterModal();
+  const status = modal.querySelector("#bmStatus");
+  const select = modal.querySelector("#bmCard");
+  status.textContent = "Kartalar yuklanmoqda...";
+  modal.style.display = "flex";
+
+  try {
+    const response = await adminRequest(
+      `/api/players/${player.id}/cards`
+    );
+    const cards = Array.isArray(response) ? response : (response.cards || []);
+    select.replaceChildren();
+
+    if (!cards.length) {
+      const option = document.createElement("option");
+      option.textContent = "Avval ushbu futbolchiga karta yarating";
+      option.value = "";
+      select.appendChild(option);
+      status.textContent = "Karta topilmadi. 🃏 KARTALAR tugmasi orqali karta yarating.";
+      modal.querySelector("#bmStats").value = "{}";
+      modal.querySelector("#bmHighlights").value = "[]";
+      modal.querySelector("#bmTip").value = "";
+      return;
+    }
+
+    for (const card of cards) {
+      const option = document.createElement("option");
+      option.value = String(card.id);
+      option.textContent = `${card.card_name || "Nomsiz karta"} | OVR ${card.rating ?? "?"} | ID ${card.id}`;
+      select.appendChild(option);
+    }
+    status.textContent = "";
+    await loadBuildMasterForm();
+  } catch (error) {
+    status.textContent = "Xato: " + error.message;
+  }
+}
+
+async function loadBuildMasterForm() {
+  const modal = ensureBuildMasterModal();
+  const select = modal.querySelector("#bmCard");
+  const cardId = select.value;
+  if (!cardId) return;
+
+  const status = modal.querySelector("#bmStatus");
+  status.textContent = "Saqlangan ma’lumotlar yuklanmoqda...";
+
+  const result = await adminRequest(`/api/cards/${encodeURIComponent(cardId)}/build`);
+  const build = result.build || {};
+  modal.querySelector("#bmStats").value =
+    JSON.stringify(build.stats || {}, null, 2);
+  modal.querySelector("#bmHighlights").value =
+    JSON.stringify(build.highlights || [], null, 2);
+  modal.querySelector("#bmTip").value = build.tip || "";
+  status.textContent = build.updated_at
+    ? "Mavjud BUILD MASTER yuklandi."
+    : "Bu kartada hali BUILD MASTER yo‘q.";
+}
+
+async function saveBuildMasterForm() {
+  const modal = ensureBuildMasterModal();
+  const select = modal.querySelector("#bmCard");
+  const cardId = select.value;
+  const status = modal.querySelector("#bmStatus");
+  const saveButton = modal.querySelector("#bmSave");
+  if (!cardId) {
+    status.textContent = "Avval karta yarating.";
+    return;
+  }
+
+  let stats;
+  let highlights;
+  try {
+    stats = JSON.parse(modal.querySelector("#bmStats").value);
+    highlights = JSON.parse(modal.querySelector("#bmHighlights").value);
+  } catch {
+    status.textContent = "JSON formati xato. Qavs va vergullarni tekshiring.";
+    return;
+  }
+
+  if (!stats || typeof stats !== "object" || Array.isArray(stats) ||
+      !Array.isArray(highlights)) {
+    status.textContent = "Statistika obyekt, Highlights esa ro‘yxat bo‘lishi kerak.";
+    return;
+  }
+
+  saveButton.disabled = true;
+  status.textContent = "Saqlanmoqda...";
+  try {
+    await adminRequest(`/api/cards/${encodeURIComponent(cardId)}/build`, {
+      method: "POST",
+      body: JSON.stringify({
+        stats,
+        highlights,
+        tip: modal.querySelector("#bmTip").value
+      })
+    });
+    status.textContent = "BUILD MASTER muvaffaqiyatli saqlandi.";
+    await refreshAdminPlayers();
+  } catch (error) {
+    status.textContent = "Xato: " + error.message;
+  } finally {
+    saveButton.disabled = false;
+  }
+}
+
+
 async function refreshAdminPlayers() {
   adminStatus.textContent = "Yuklanmoqda...";
   try {
@@ -430,59 +608,185 @@ async function refreshAdminPlayers() {
 
       const build = adminText("button", "", "⚙️ BUILD MASTER");
       build.type = "button";
-      build.addEventListener("click", async () => {
+      build.addEventListener("click", () => openBuildMasterEditor(player));
+
+      const cardsButton = document.createElement("button");
+      cardsButton.type = "button";
+      cardsButton.textContent = "🃏 KARTALAR";
+
+      cardsButton.addEventListener("click", async () => {
         try {
-          const current = await adminRequest(
-            "/api/players/" + player.id + "/build"
+          const response = await adminRequest(
+            `/api/players/${player.id}/cards`
           );
+          const data = response;
 
-          const statsText = prompt(
-            'Statistika JSON (masalan: {"Speed":95,"Finishing":90}):',
-            JSON.stringify(current.stats || {}, null, 2)
+          const existingCards = Array.isArray(data)
+            ? data
+            : (data.cards || []);
+
+          let selectedCard = null;
+
+          if (existingCards.length) {
+            const menu = existingCards.map((item, index) =>
+              `${index + 1}. ${item.card_name || "Nomsiz karta"} | ` +
+              `OVR: ${item.rating ?? "Noma'lum"} | ID: ${item.id}`
+            ).join("\n");
+
+            const choice = prompt(
+              "KARTA BOSHQARUVI\n" +
+              menu +
+              "\n\n0 — yangi karta yaratish\n" +
+              "Mavjud karta raqamini kiriting:"
+            );
+
+            if (choice === null) return;
+
+            if (choice.trim() !== "0") {
+              const index = Number(choice) - 1;
+              if (!Number.isInteger(index) ||
+                  index < 0 ||
+                  index >= existingCards.length) {
+                alert("Noto'g'ri tanlov.");
+                return;
+              }
+              selectedCard = existingCards[index];
+            }
+          } else {
+            const create = confirm(
+              "Bu futbolchida hali karta yo'q.\n" +
+              "Yangi karta yaratamizmi?"
+            );
+            if (!create) return;
+          }
+
+          if (!selectedCard) {
+            const cardName = prompt("Kartaning aniq nomi:");
+            if (!cardName || !cardName.trim()) return;
+
+            const cardType = prompt(
+              "Karta turi (masalan, Epic, POTW yoki Highlight):"
+            );
+            if (cardType === null) return;
+
+            const ratingText = prompt(
+              "Kartadagi haqiqiy OVR raqamini kiriting:"
+            );
+            if (ratingText === null || !ratingText.trim()) return;
+
+            const rating = Number(ratingText);
+            if (!Number.isInteger(rating) || rating < 0 || rating > 200) {
+              alert("OVR 0 dan 200 gacha butun son bo'lishi kerak.");
+              return;
+            }
+
+            const position = prompt("Asosiy pozitsiya (masalan, CF):");
+            if (position === null) return;
+
+            const style = prompt("Playing Style (aniq bo'lsa):");
+            if (style === null) return;
+
+            const releaseDate = prompt(
+              "Chiqarilgan sana (bilinmasa bo'sh qoldiring):"
+            );
+            if (releaseDate === null) return;
+
+            const source = prompt(
+              "Manba (rasmiy havola yoki tekshirilgan manba nomi):"
+            );
+            if (source === null) return;
+
+            const createResponse = await adminRequest(
+              `/api/players/${player.id}/cards`,
+              {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                  card_name: cardName.trim(),
+                  card_type: cardType.trim(),
+                  rating,
+                  position: position.trim(),
+                  playing_style: style.trim(),
+                  release_date: releaseDate.trim(),
+                  source: source.trim()
+                })
+              }
+            );
+
+            const created = createResponse;
+
+            selectedCard = created.card || created;
+            if (!selectedCard.id) {
+              const refreshedResponse = await adminRequest(
+                `/api/players/${player.id}/cards`
+              );
+              const refreshed = refreshedResponse;
+              const refreshedCards = Array.isArray(refreshed)
+                ? refreshed
+                : (refreshed.cards || []);
+              selectedCard = refreshedCards.find(
+                item => item.card_name === cardName.trim()
+              );
+            }
+
+            if (!selectedCard || !selectedCard.id) {
+              alert("Karta yaratildi, ammo ID olinmadi. Kartalar ro'yxatini tekshiring.");
+              return;
+            }
+          }
+
+          const detailsResponse = await adminRequest(
+            `/api/cards/${selectedCard.id}/details`
           );
-          if (statsText === null) return;
+          const current = detailsResponse;
 
-          let stats;
+          const template = {
+            base_ovr: current.base_ovr ?? null,
+            max_ovr: current.max_ovr ?? null,
+            height_cm: current.height_cm ?? null,
+            weight_kg: current.weight_kg ?? null,
+            age: current.age ?? null,
+            stats: current.stats || {},
+            position_ratings: current.position_ratings || {},
+            skills: current.skills || [],
+            boosters: current.boosters || [],
+            max_build: current.max_build || {},
+            source: current.source || selectedCard.source || "manual"
+          };
+
+          const input = prompt(
+            "Karta tafsilotlarini JSON ko'rinishida kiriting.\n" +
+            "Noma'lum raqamlar null, mavjud bo'lmagan ro'yxatlar [] bo'lsin.\n" +
+            "Faqat tekshirilgan ma'lumotlarni kiriting:",
+            JSON.stringify(template, null, 2)
+          );
+          if (input === null) return;
+
+          let details;
           try {
-            stats = JSON.parse(statsText);
+            details = JSON.parse(input);
           } catch {
-            adminStatus.textContent = "Statistika JSON formati noto‘g‘ri.";
+            alert("JSON xato. Qavslar va vergullarni tekshiring.");
             return;
           }
 
-          const highlightsText = prompt(
-            'Highlights JSON (masalan: ["Bullet Header","Long-Range Curler"]):',
-            JSON.stringify(current.highlights || [], null, 2)
+          const saveResponse = await adminRequest(
+            `/api/cards/${selectedCard.id}/details`,
+            {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify(details)
+            }
           );
-          if (highlightsText === null) return;
 
-          let highlights;
-          try {
-            highlights = JSON.parse(highlightsText);
-          } catch {
-            adminStatus.textContent = "Highlights JSON formati noto‘g‘ri.";
-            return;
-          }
-
-          const tip = prompt(
-            "Futbolchi uchun maslahat:",
-            current.tip || ""
-          );
-          if (tip === null) return;
-
-          await adminRequest("/api/players/" + player.id + "/build", {
-            method: "POST",
-            body: JSON.stringify({stats, highlights, tip})
-          });
-
-          adminStatus.textContent = "BUILD MASTER ma’lumotlari saqlandi.";
-          await refreshAdminPlayers();
+          const saved = saveResponse;
+          alert("Karta tafsilotlari saqlandi!");
         } catch (error) {
-          adminStatus.textContent = "Xato: " + error.message;
+          alert("Xato: " + error.message);
         }
       });
 
-      card.append(edit, remove, build);
+      card.append(edit, remove, build, cardsButton);
       adminPlayers.appendChild(card);
     }
     if (!rows.length) adminPlayers.appendChild(adminText("p", "", "Futbolchi topilmadi."));

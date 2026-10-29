@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory
 import os
 import json
 import sqlite3
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -51,6 +52,12 @@ else:
 
 from database.build_master_tables import create_build_master_tables
 create_build_master_tables(use_postgres=USE_POSTGRES, db_path=DB_PATH)
+
+from database.card_details import create_card_details_tables
+create_card_details_tables(use_postgres=USE_POSTGRES, db_path=DB_PATH)
+
+from database.card_builds import create_card_build_tables
+create_card_build_tables(use_postgres=USE_POSTGRES, db_path=DB_PATH)
 
 
 @app.route("/")
@@ -299,11 +306,370 @@ def player_build(player_id):
 
 
 
+
+def _card_json(value, default):
+    try:
+        return json.loads(value) if value else default
+    except (TypeError, ValueError):
+        return default
+
+
+@app.route("/api/players/<int:player_id>/cards", methods=["GET", "POST"])
+def player_cards_api(player_id):
+    if request.method == "POST" and not _admin_authorized():
+        return jsonify({"error": "Ruxsat berilmadi"}), 401
+
+    try:
+        if request.method == "GET":
+            if USE_POSTGRES:
+                with postgres_db.get_connection() as db:
+                    rows = db.execute("""
+                        SELECT id, player_id, card_name, card_type, rating,
+                               position, playing_style, image, release_date, source
+                        FROM player_cards
+                        WHERE player_id = %s
+                        ORDER BY rating DESC, id DESC
+                    """, (player_id,)).fetchall()
+            else:
+                with sqlite3.connect(DB_PATH) as db:
+                    db.row_factory = sqlite3.Row
+                    rows = db.execute("""
+                        SELECT id, player_id, card_name, card_type, rating,
+                               position, playing_style, image, release_date, source
+                        FROM player_cards
+                        WHERE player_id = ?
+                        ORDER BY rating DESC, id DESC
+                    """, (player_id,)).fetchall()
+            return jsonify([dict(row) for row in rows])
+
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "JSON ma'lumot yuboring"}), 400
+
+        name = str(data.get("card_name", "")).strip()
+        if not name or len(name) > 120:
+            return jsonify({"error": "card_name 1–120 belgi bo'lishi kerak"}), 400
+
+        try:
+            rating = int(data.get("rating", 0))
+        except (TypeError, ValueError):
+            return jsonify({"error": "rating son bo'lishi kerak"}), 400
+        if not 0 <= rating <= 200:
+            return jsonify({"error": "rating 0–200 oralig'ida bo'lishi kerak"}), 400
+
+        values = (
+            player_id, name,
+            str(data.get("card_type", "Standard"))[:80],
+            rating, str(data.get("position", ""))[:30],
+            str(data.get("playing_style", ""))[:100],
+            str(data.get("image", ""))[:500],
+            str(data.get("release_date", ""))[:30],
+            str(data.get("source", "manual"))[:80],
+        )
+
+        if USE_POSTGRES:
+            with postgres_db.get_connection() as db:
+                player = db.execute(
+                    "SELECT id FROM players WHERE id = %s", (player_id,)
+                ).fetchone()
+                if not player:
+                    return jsonify({"error": "Futbolchi topilmadi"}), 404
+                row = db.execute("""
+                    INSERT INTO player_cards
+                    (player_id, card_name, card_type, rating, position,
+                     playing_style, image, release_date, source)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING id, player_id, card_name, card_type, rating,
+                              position, playing_style, image, release_date, source
+                """, values).fetchone()
+        else:
+            with sqlite3.connect(DB_PATH) as db:
+                db.row_factory = sqlite3.Row
+                player = db.execute(
+                    "SELECT id FROM players WHERE id = ?", (player_id,)
+                ).fetchone()
+                if not player:
+                    return jsonify({"error": "Futbolchi topilmadi"}), 404
+                cursor = db.execute("""
+                    INSERT INTO player_cards
+                    (player_id, card_name, card_type, rating, position,
+                     playing_style, image, release_date, source)
+                    VALUES (?,?,?,?,?,?,?,?,?)
+                """, values)
+                row = db.execute("""
+                    SELECT id, player_id, card_name, card_type, rating,
+                           position, playing_style, image, release_date, source
+                    FROM player_cards WHERE id = ?
+                """, (cursor.lastrowid,)).fetchone()
+                row = dict(row)
+
+        return jsonify({"message": "Karta yaratildi", "card": dict(row)}), 201
+    except Exception:
+        app.logger.exception("Karta API xatosi")
+        return jsonify({"error": "Karta ma'lumotini saqlab bo'lmadi"}), 500
+
+
+@app.route("/api/cards/<int:card_id>/details", methods=["GET", "POST"])
+def card_details_api(card_id):
+    if request.method == "POST" and not _admin_authorized():
+        return jsonify({"error": "Ruxsat berilmadi"}), 401
+
+    try:
+        if request.method == "GET":
+            if USE_POSTGRES:
+                with postgres_db.get_connection() as db:
+                    row = db.execute("""
+                        SELECT * FROM player_card_details WHERE card_id = %s
+                    """, (card_id,)).fetchone()
+            else:
+                with sqlite3.connect(DB_PATH) as db:
+                    db.row_factory = sqlite3.Row
+                    row = db.execute("""
+                        SELECT * FROM player_card_details WHERE card_id = ?
+                    """, (card_id,)).fetchone()
+
+            if not row:
+                return jsonify({"card_id": card_id, "details": None})
+            result = dict(row)
+            for key in ("stats", "position_ratings", "skills", "boosters", "max_build"):
+                result[key] = _card_json(result.get(key), {} if key in
+                    ("stats", "position_ratings", "max_build") else [])
+            return jsonify(result)
+
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "JSON ma'lumot yuboring"}), 400
+
+        def optional_int(key, minimum, maximum):
+            value = data.get(key)
+            if value is None or value == "":
+                return None
+            if isinstance(value, bool):
+                raise ValueError(key)
+            number = int(value)
+            if not minimum <= number <= maximum:
+                raise ValueError(key)
+            return number
+
+        try:
+            base_ovr = optional_int("base_ovr", 0, 200)
+            max_ovr = optional_int("max_ovr", 0, 200)
+            height = optional_int("height_cm", 50, 260)
+            weight = optional_int("weight_kg", 20, 250)
+            age = optional_int("age", 10, 100)
+        except (ValueError, TypeError):
+            return jsonify({"error": "OVR, bo'y, vazn yoki yosh qiymati noto'g'ri"}), 400
+
+        stats = data.get("stats", {})
+        positions = data.get("position_ratings", {})
+        skills = data.get("skills", [])
+        boosters = data.get("boosters", [])
+        max_build = data.get("max_build", {})
+
+        if not isinstance(stats, dict) or len(stats) > 50:
+            return jsonify({"error": "stats noto'g'ri"}), 400
+        if not isinstance(positions, dict) or len(positions) > 30:
+            return jsonify({"error": "position_ratings noto'g'ri"}), 400
+        for group in (stats, positions):
+            for key, value in group.items():
+                if not isinstance(key, str) or not key.strip() or len(key) > 60:
+                    return jsonify({"error": "Statistika yoki pozitsiya nomi noto'g'ri"}), 400
+                if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 99:
+                    return jsonify({"error": "Statistika va pozitsiya qiymatlari 0–99 bo'lishi kerak"}), 400
+        if not isinstance(skills, list) or len(skills) > 100 or any(not isinstance(x, str) or len(x) > 100 for x in skills):
+            return jsonify({"error": "skills noto'g'ri"}), 400
+        if not isinstance(boosters, list) or len(boosters) > 30 or any(not isinstance(x, str) or len(x) > 100 for x in boosters):
+            return jsonify({"error": "boosters noto'g'ri"}), 400
+        if not isinstance(max_build, dict) or len(max_build) > 50:
+            return jsonify({"error": "max_build noto'g'ri"}), 400
+
+        payload = (
+            card_id, base_ovr, max_ovr, height, weight, age,
+            json.dumps(stats, ensure_ascii=False),
+            json.dumps(positions, ensure_ascii=False),
+            json.dumps(skills, ensure_ascii=False),
+            json.dumps(boosters, ensure_ascii=False),
+            json.dumps(max_build, ensure_ascii=False),
+            str(data.get("source", "manual"))[:80],
+            __import__("datetime").datetime.now(
+                __import__("datetime").timezone.utc
+            ).isoformat(),
+        )
+
+        if USE_POSTGRES:
+            with postgres_db.get_connection() as db:
+                card = db.execute(
+                    "SELECT id FROM player_cards WHERE id = %s", (card_id,)
+                ).fetchone()
+                if not card:
+                    return jsonify({"error": "Karta topilmadi"}), 404
+                db.execute("""
+                    INSERT INTO player_card_details
+                    (card_id, base_ovr, max_ovr, height_cm, weight_kg, age,
+                     stats, position_ratings, skills, boosters, max_build, source, updated_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (card_id) DO UPDATE SET
+                      base_ovr=EXCLUDED.base_ovr, max_ovr=EXCLUDED.max_ovr,
+                      height_cm=EXCLUDED.height_cm, weight_kg=EXCLUDED.weight_kg,
+                      age=EXCLUDED.age, stats=EXCLUDED.stats,
+                      position_ratings=EXCLUDED.position_ratings,
+                      skills=EXCLUDED.skills, boosters=EXCLUDED.boosters,
+                      max_build=EXCLUDED.max_build, source=EXCLUDED.source,
+                      updated_at=EXCLUDED.updated_at
+                """, payload)
+        else:
+            with sqlite3.connect(DB_PATH) as db:
+                card = db.execute(
+                    "SELECT id FROM player_cards WHERE id = ?", (card_id,)
+                ).fetchone()
+                if not card:
+                    return jsonify({"error": "Karta topilmadi"}), 404
+                db.execute("""
+                    INSERT INTO player_card_details
+                    (card_id, base_ovr, max_ovr, height_cm, weight_kg, age,
+                     stats, position_ratings, skills, boosters, max_build, source, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(card_id) DO UPDATE SET
+                      base_ovr=excluded.base_ovr, max_ovr=excluded.max_ovr,
+                      height_cm=excluded.height_cm, weight_kg=excluded.weight_kg,
+                      age=excluded.age, stats=excluded.stats,
+                      position_ratings=excluded.position_ratings,
+                      skills=excluded.skills, boosters=excluded.boosters,
+                      max_build=excluded.max_build, source=excluded.source,
+                      updated_at=excluded.updated_at
+                """, payload)
+
+        return jsonify({"message": "Karta tafsilotlari saqlandi", "card_id": card_id}), 200
+    except Exception:
+        app.logger.exception("Karta tafsilotlari API xatosi")
+        return jsonify({"error": "Karta tafsilotlarini saqlab bo'lmadi"}), 500
+
+
 def _admin_authorized():
     import hmac
     token = os.environ.get("ADMIN_TOKEN", "")
     supplied = request.headers.get("Authorization", "")
     return bool(token) and hmac.compare_digest(supplied, "Bearer " + token)
+
+
+
+@app.route("/api/cards/<int:card_id>/build", methods=["GET", "POST"])
+def card_build_api(card_id):
+    if request.method == "POST" and not _admin_authorized():
+        return jsonify({"error": "Ruxsat berilmadi"}), 401
+
+    try:
+        if USE_POSTGRES:
+            with postgres_db.get_connection() as db:
+                card = db.execute(
+                    "SELECT id FROM player_cards WHERE id = %s", (card_id,)
+                ).fetchone()
+                if not card:
+                    return jsonify({"error": "Karta topilmadi"}), 404
+
+                if request.method == "GET":
+                    row = db.execute(
+                        "SELECT * FROM player_card_builds WHERE card_id = %s",
+                        (card_id,)
+                    ).fetchone()
+                    if not row:
+                        return jsonify({"card_id": card_id, "build": None})
+                    result = dict(row)
+                else:
+                    data = request.get_json(silent=True)
+                    if not isinstance(data, dict):
+                        return jsonify({"error": "JSON ma'lumot yuboring"}), 400
+                    stats = data.get("stats", {})
+                    highlights = data.get("highlights", [])
+                    tip = data.get("tip", "")
+                    if not isinstance(stats, dict) or len(stats) > 50:
+                        return jsonify({"error": "stats noto'g'ri"}), 400
+                    if not isinstance(highlights, list) or len(highlights) > 50 or any(not isinstance(x, str) or len(x) > 120 for x in highlights):
+                        return jsonify({"error": "highlights noto'g'ri"}), 400
+                    if not isinstance(tip, str) or len(tip) > 1000:
+                        return jsonify({"error": "tip noto'g'ri"}), 400
+                    for key, value in stats.items():
+                        if not isinstance(key, str) or not key.strip() or len(key) > 60:
+                            return jsonify({"error": "Stat nomi noto'g'ri"}), 400
+                        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 99:
+                            return jsonify({"error": "Stat qiymati 0–99 bo'lishi kerak"}), 400
+                    updated = datetime.now().astimezone().isoformat()
+                    db.execute("""
+                        INSERT INTO player_card_builds
+                            (card_id, stats, highlights, tip, updated_at)
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (card_id) DO UPDATE SET
+                            stats = EXCLUDED.stats,
+                            highlights = EXCLUDED.highlights,
+                            tip = EXCLUDED.tip,
+                            updated_at = EXCLUDED.updated_at
+                    """, (
+                        card_id, json.dumps(stats, ensure_ascii=False),
+                        json.dumps(highlights, ensure_ascii=False), tip, updated
+                    ))
+                    return jsonify({"message": "Karta buildi saqlandi", "card_id": card_id}), 200
+        else:
+            with sqlite3.connect(DB_PATH) as db:
+                db.row_factory = sqlite3.Row
+                card = db.execute(
+                    "SELECT id FROM player_cards WHERE id = ?", (card_id,)
+                ).fetchone()
+                if not card:
+                    return jsonify({"error": "Karta topilmadi"}), 404
+
+                if request.method == "GET":
+                    row = db.execute(
+                        "SELECT * FROM player_card_builds WHERE card_id = ?",
+                        (card_id,)
+                    ).fetchone()
+                    if not row:
+                        return jsonify({"card_id": card_id, "build": None})
+                    result = dict(row)
+                else:
+                    data = request.get_json(silent=True)
+                    if not isinstance(data, dict):
+                        return jsonify({"error": "JSON ma'lumot yuboring"}), 400
+                    stats = data.get("stats", {})
+                    highlights = data.get("highlights", [])
+                    tip = data.get("tip", "")
+                    if not isinstance(stats, dict) or len(stats) > 50:
+                        return jsonify({"error": "stats noto'g'ri"}), 400
+                    if not isinstance(highlights, list) or len(highlights) > 50 or any(not isinstance(x, str) or len(x) > 120 for x in highlights):
+                        return jsonify({"error": "highlights noto'g'ri"}), 400
+                    if not isinstance(tip, str) or len(tip) > 1000:
+                        return jsonify({"error": "tip noto'g'ri"}), 400
+                    for key, value in stats.items():
+                        if not isinstance(key, str) or not key.strip() or len(key) > 60:
+                            return jsonify({"error": "Stat nomi noto'g'ri"}), 400
+                        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 99:
+                            return jsonify({"error": "Stat qiymati 0–99 bo'lishi kerak"}), 400
+                    updated = datetime.now().astimezone().isoformat()
+                    db.execute("""
+                        INSERT INTO player_card_builds
+                            (card_id, stats, highlights, tip, updated_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT(card_id) DO UPDATE SET
+                            stats = excluded.stats,
+                            highlights = excluded.highlights,
+                            tip = excluded.tip,
+                            updated_at = excluded.updated_at
+                    """, (
+                        card_id, json.dumps(stats, ensure_ascii=False),
+                        json.dumps(highlights, ensure_ascii=False), tip, updated
+                    ))
+                    return jsonify({"message": "Karta buildi saqlandi", "card_id": card_id}), 200
+
+        for key, default in (("stats", {}), ("highlights", [])):
+            value = result.get(key)
+            try:
+                result[key] = json.loads(value) if isinstance(value, str) else value
+            except (ValueError, TypeError):
+                result[key] = default
+        return jsonify({"card_id": card_id, "build": result}), 200
+
+    except Exception:
+        app.logger.exception("Karta build API xatosi")
+        return jsonify({"error": "Karta buildini o'qish yoki saqlash amalga oshmadi"}), 500
 
 
 @app.route("/api/admin/players", methods=["GET", "POST"])
