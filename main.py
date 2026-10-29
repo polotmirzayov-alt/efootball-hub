@@ -1,10 +1,12 @@
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, render_template_string
 import os
 import json
 import sqlite3
 from datetime import datetime
 
 app = Flask(__name__)
+
+from hub import PLAYERS as HUB_PLAYERS, HTML as HUB_HTML
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "efootball.db")
@@ -63,6 +65,37 @@ create_card_build_tables(use_postgres=USE_POSTGRES, db_path=DB_PATH)
 @app.route("/")
 def home():
     return send_from_directory(BASE_DIR, "app.html")
+
+
+@app.route("/hub", methods=["GET"])
+def hub_home():
+    selected = request.args.get("player", "ronaldo_bigtime")
+    if selected not in HUB_PLAYERS:
+        selected = "ronaldo_bigtime"
+
+    player = HUB_PLAYERS[selected]
+    try:
+        ovr = int(request.args.get("ovr", player["ovr"]))
+    except (TypeError, ValueError):
+        ovr = player["ovr"]
+    ovr = max(0, min(112, ovr))
+
+    tab = request.args.get("tab", "stats")
+    if tab not in {"stats", "builds", "skills", "positions"}:
+        tab = "stats"
+
+    html = HUB_HTML.replace('action="/"', 'action="/hub"')
+    html = html.replace('href="/?player=', 'href="/hub?player=')
+
+    return render_template_string(
+        html,
+        database=HUB_PLAYERS,
+        selected=selected,
+        player=player,
+        ovr=ovr,
+        tab=tab
+    )
+
 
 
 @app.route("/player")
