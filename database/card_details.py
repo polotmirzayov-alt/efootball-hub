@@ -88,6 +88,39 @@ def create_card_details_tables(use_postgres=False, db_path=None):
                 )
             """)
 
+    # PESDB manba ID si va takroriy kartalardan himoya.
+    if use_postgres:
+        from database.postgres_db import get_connection
+        with get_connection() as db:
+            db.execute("""
+                ALTER TABLE player_cards
+                ADD COLUMN IF NOT EXISTS source_card_id TEXT
+            """)
+            db.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                idx_player_cards_source_card_id
+                ON player_cards (source, source_card_id)
+                WHERE source_card_id IS NOT NULL
+                  AND source_card_id <> ''
+            """)
+    else:
+        with sqlite3.connect(db_path) as db:
+            columns = {
+                row[1] for row in
+                db.execute("PRAGMA table_info(player_cards)").fetchall()
+            }
+            if "source_card_id" not in columns:
+                db.execute(
+                    "ALTER TABLE player_cards ADD COLUMN source_card_id TEXT"
+                )
+            db.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                idx_player_cards_source_card_id
+                ON player_cards (source, source_card_id)
+                WHERE source_card_id IS NOT NULL
+                  AND source_card_id <> ''
+            """)
+
     # Eski bazalarga ustunlarni ma'lumotlarni o'chirmasdan qo'shish.
     if use_postgres:
         from database.postgres_db import get_connection

@@ -363,7 +363,7 @@ def player_cards_api(player_id):
                 with postgres_db.get_connection() as db:
                     rows = db.execute("""
                         SELECT id, player_id, card_name, card_type, rating,
-                               position, playing_style, image, release_date, source
+                               position, playing_style, image, release_date, source, source_card_id
                         FROM player_cards
                         WHERE player_id = %s
                         ORDER BY rating DESC, id DESC
@@ -373,7 +373,7 @@ def player_cards_api(player_id):
                     db.row_factory = sqlite3.Row
                     rows = db.execute("""
                         SELECT id, player_id, card_name, card_type, rating,
-                               position, playing_style, image, release_date, source
+                               position, playing_style, image, release_date, source, source_card_id
                         FROM player_cards
                         WHERE player_id = ?
                         ORDER BY rating DESC, id DESC
@@ -403,6 +403,7 @@ def player_cards_api(player_id):
             str(data.get("image", ""))[:500],
             str(data.get("release_date", ""))[:30],
             str(data.get("source", "manual"))[:80],
+            str(data.get("source_card_id", ""))[:100],
         )
 
         if USE_POSTGRES:
@@ -415,10 +416,9 @@ def player_cards_api(player_id):
                 row = db.execute("""
                     INSERT INTO player_cards
                     (player_id, card_name, card_type, rating, position,
-                     playing_style, image, release_date, source)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                    RETURNING id, player_id, card_name, card_type, rating,
-                              position, playing_style, image, release_date, source
+                     playing_style, image, release_date, source, source_card_id)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING id, player_id, card_name, card_type, rating, position, playing_style, image, release_date, source, source_card_id
                 """, values).fetchone()
         else:
             with sqlite3.connect(DB_PATH) as db:
@@ -431,12 +431,12 @@ def player_cards_api(player_id):
                 cursor = db.execute("""
                     INSERT INTO player_cards
                     (player_id, card_name, card_type, rating, position,
-                     playing_style, image, release_date, source)
-                    VALUES (?,?,?,?,?,?,?,?,?)
+                     playing_style, image, release_date, source, source_card_id)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)
                 """, values)
                 row = db.execute("""
                     SELECT id, player_id, card_name, card_type, rating,
-                           position, playing_style, image, release_date, source
+                           position, playing_style, image, release_date, source, source_card_id
                     FROM player_cards WHERE id = ?
                 """, (cursor.lastrowid,)).fetchone()
                 row = dict(row)
@@ -445,6 +445,178 @@ def player_cards_api(player_id):
     except Exception:
         app.logger.exception("Karta API xatosi")
         return jsonify({"error": "Karta ma'lumotini saqlab bo'lmadi"}), 500
+
+
+
+@app.route("/api/import-pesdb-card", methods=["POST"])
+def import_pesdb_card():
+    if not _admin_authorized():
+        return jsonify({"error": "Ruxsat berilmadi"}), 401
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "JSON ma'lumot yuboring"}), 400
+
+    name = str(data.get("player_name", "")).strip()[:120]
+    nationality = str(data.get("nationality", "")).strip()[:80]
+    club = str(data.get("club", "")).strip()[:120]
+    source = str(data.get("source", "PESDB")).strip()[:80] or "PESDB"
+    source_card_id = str(data.get("source_card_id", "")).strip()[:100]
+    card_name = str(data.get("card_name", "")).strip()[:120]
+
+    if not name or not card_name or not source_card_id:
+        return jsonify({
+            "error": "player_name, card_name va source_card_id majburiy"
+        }), 400
+
+    try:
+        rating = int(data.get("rating", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "rating son bo'lishi kerak"}), 400
+
+    if not 0 <= rating <= 200:
+        return jsonify({"error": "rating 0–200 oralig'ida bo'lishi kerak"}), 400
+
+    card_type = str(data.get("card_type", "Standard")).strip()[:80] or "Standard"
+    position = str(data.get("position", "")).strip()[:30]
+    playing_style = str(data.get("playing_style", "")).strip()[:100]
+    image_url = str(data.get("image", "")).strip()[:500]
+    release_date = str(data.get("release_date", "")).strip()[:30]
+
+    try:
+        if USE_POSTGRES:
+            with postgres_db.get_connection() as db:
+                existing_card = db.execute("""
+                    SELECT id, player_id, card_name, source_card_id
+                    FROM player_cards
+                    WHERE source = %s AND source_card_id = %s
+                    LIMIT 1
+                """, (source, source_card_id)).fetchone()
+
+                if existing_card:
+                    return jsonify({
+                        "message": "Karta oldin import qilingan",
+                        "duplicate": True,
+                        "card": dict(existing_card)
+                    }), 200
+
+                player = db.execute("""
+                    SELECT id FROM players
+                    WHERE LOWER(TRIM(name)) = LOWER(TRIM(%s))
+                      AND LOWER(TRIM(COALESCE(nationality, ''))) = LOWER(TRIM(%s))
+                      AND LOWER(TRIM(COALESCE(club, ''))) = LOWER(TRIM(%s))
+                    ORDER BY id
+                    LIMIT 1
+                """, (name, nationality, club)).fetchone()
+
+                if player:
+                    player_id = player["id"]
+                    player_created = False
+                else:
+                    player = db.execute("""
+                        INSERT INTO players
+                            (name, nationality, club, position, rating,
+                             level, playing_style, card_type, image)
+                        VALUES (%s,%s,%s,%s,%s,1,%s,%s,%s)
+                        RETURNING id
+                    """, (
+                        name, nationality, club, position, rating,
+                        playing_style, card_type, image_url
+                    )).fetchone()
+                    player_id = player["id"]
+                    player_created = True
+
+                row = db.execute("""
+                    INSERT INTO player_cards
+                        (player_id, card_name, card_type, rating, position,
+                         playing_style, image, release_date, source, source_card_id)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING id, player_id, card_name, card_type, rating,
+                              position, playing_style, image, release_date,
+                              source, source_card_id
+                """, (
+                    player_id, card_name, card_type, rating, position,
+                    playing_style, image_url, release_date, source, source_card_id
+                )).fetchone()
+
+                return jsonify({
+                    "message": "PESDB kartasi import qilindi",
+                    "player_created": player_created,
+                    "player_id": player_id,
+                    "card": dict(row)
+                }), 201
+
+        else:
+            with sqlite3.connect(DB_PATH) as db:
+                db.row_factory = sqlite3.Row
+                db.execute("PRAGMA foreign_keys = ON")
+
+                existing_card = db.execute("""
+                    SELECT id, player_id, card_name, source_card_id
+                    FROM player_cards
+                    WHERE source = ? AND source_card_id = ?
+                    LIMIT 1
+                """, (source, source_card_id)).fetchone()
+
+                if existing_card:
+                    return jsonify({
+                        "message": "Karta oldin import qilingan",
+                        "duplicate": True,
+                        "card": dict(existing_card)
+                    }), 200
+
+                player = db.execute("""
+                    SELECT id FROM players
+                    WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))
+                      AND LOWER(TRIM(COALESCE(nationality, ''))) = LOWER(TRIM(?))
+                      AND LOWER(TRIM(COALESCE(club, ''))) = LOWER(TRIM(?))
+                    ORDER BY id
+                    LIMIT 1
+                """, (name, nationality, club)).fetchone()
+
+                if player:
+                    player_id = player["id"]
+                    player_created = False
+                else:
+                    cursor = db.execute("""
+                        INSERT INTO players
+                            (name, nationality, club, position, rating,
+                             level, playing_style, card_type, image)
+                        VALUES (?,?,?,?,?,1,?,?,?)
+                    """, (
+                        name, nationality, club, position, rating,
+                        playing_style, card_type, image_url
+                    ))
+                    player_id = cursor.lastrowid
+                    player_created = True
+
+                cursor = db.execute("""
+                    INSERT INTO player_cards
+                        (player_id, card_name, card_type, rating, position,
+                         playing_style, image, release_date, source, source_card_id)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)
+                """, (
+                    player_id, card_name, card_type, rating, position,
+                    playing_style, image_url, release_date, source, source_card_id
+                ))
+
+                row = db.execute("""
+                    SELECT id, player_id, card_name, card_type, rating,
+                           position, playing_style, image, release_date,
+                           source, source_card_id
+                    FROM player_cards WHERE id = ?
+                """, (cursor.lastrowid,)).fetchone()
+
+                return jsonify({
+                    "message": "PESDB kartasi import qilindi",
+                    "player_created": player_created,
+                    "player_id": player_id,
+                    "card": dict(row)
+                }), 201
+
+    except Exception:
+        app.logger.exception("PESDB kartasini import qilishda xato")
+        return jsonify({"error": "PESDB kartasini saqlab bo'lmadi"}), 500
 
 
 @app.route("/api/cards/<int:card_id>/details", methods=["GET", "POST"])
