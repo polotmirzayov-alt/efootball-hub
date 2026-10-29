@@ -215,8 +215,8 @@ def player_build(player_id):
         for label, value in stats.items():
             if not isinstance(label, str) or not label.strip() or len(label) > 50:
                 return jsonify({"error": "Statistika nomi noto'g'ri"}), 400
-            if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 99:
-                return jsonify({"error": "Statistika 0 dan 99 gacha bo'lishi kerak"}), 400
+            if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 105:
+                return jsonify({"error": "Statistika 0 dan 105 gacha bo'lishi kerak"}), 400
             clean_stats[label.strip()] = value
 
         if any(not isinstance(item, str) or len(item) > 150 for item in highlights):
@@ -452,8 +452,8 @@ def card_details_api(card_id):
             return number
 
         try:
-            base_ovr = optional_int("base_ovr", 0, 200)
-            max_ovr = optional_int("max_ovr", 0, 200)
+            base_ovr = optional_int("base_ovr", 0, 112)
+            max_ovr = optional_int("max_ovr", 0, 112)
             height = optional_int("height_cm", 50, 260)
             weight = optional_int("weight_kg", 20, 250)
             age = optional_int("age", 10, 100)
@@ -476,11 +476,11 @@ def card_details_api(card_id):
             for key, value in group.items():
                 if not isinstance(key, str) or not key.strip() or len(key) > 60:
                     return jsonify({"error": "Statistika yoki pozitsiya nomi noto'g'ri"}), 400
-                if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 99:
-                    return jsonify({"error": "Statistika va pozitsiya qiymatlari 0–99 bo'lishi kerak"}), 400
-        if not isinstance(skills, list) or len(skills) > 100 or any(not isinstance(x, str) or len(x) > 100 for x in skills):
+                if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 105:
+                    return jsonify({"error": "Statistika va pozitsiya qiymatlari 0–105 bo'lishi kerak"}), 400
+        if not isinstance(skills, list) or len(skills) > 200 or any(not isinstance(x, str) or len(x) > 100 for x in skills):
             return jsonify({"error": "skills noto'g'ri"}), 400
-        if not isinstance(boosters, list) or len(boosters) > 30 or any(not isinstance(x, str) or len(x) > 100 for x in boosters):
+        if not isinstance(boosters, list) or len(boosters) > 100 or any(not isinstance(x, str) or len(x) > 100 for x in boosters):
             return jsonify({"error": "boosters noto'g'ri"}), 400
         if not isinstance(max_build, dict) or len(max_build) > 50:
             return jsonify({"error": "max_build noto'g'ri"}), 400
@@ -601,8 +601,8 @@ def card_build_api(card_id):
                     for key, value in stats.items():
                         if not isinstance(key, str) or not key.strip() or len(key) > 60:
                             return jsonify({"error": "Stat nomi noto'g'ri"}), 400
-                        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 99:
-                            return jsonify({"error": "Stat qiymati 0–99 bo'lishi kerak"}), 400
+                        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 105:
+                            return jsonify({"error": "Stat qiymati 0–105 bo'lishi kerak"}), 400
                     updated = datetime.now().astimezone().isoformat()
                     db.execute("""
                         INSERT INTO player_card_builds
@@ -651,8 +651,8 @@ def card_build_api(card_id):
                     for key, value in stats.items():
                         if not isinstance(key, str) or not key.strip() or len(key) > 60:
                             return jsonify({"error": "Stat nomi noto'g'ri"}), 400
-                        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 99:
-                            return jsonify({"error": "Stat qiymati 0–99 bo'lishi kerak"}), 400
+                        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 105:
+                            return jsonify({"error": "Stat qiymati 0–105 bo'lishi kerak"}), 400
                     updated = datetime.now().astimezone().isoformat()
                     db.execute("""
                         INSERT INTO player_card_builds

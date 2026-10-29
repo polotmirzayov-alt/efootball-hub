@@ -553,6 +553,7 @@ async function saveBuildMasterForm() {
 
 
 
+
 let cardDetailsModal = null;
 
 function openCardDetailsEditor(template) {
@@ -562,32 +563,56 @@ function openCardDetailsEditor(template) {
       #cardDetailsModal {
         position:fixed; inset:0; z-index:10000; display:none;
         align-items:center; justify-content:center; padding:12px;
-        background:rgba(0,0,0,.88); overflow:auto;
+        background:rgba(0,0,0,.9); overflow:auto;
       }
       #cardDetailsModal .cd-box {
-        width:min(720px,100%); max-height:92%; overflow:auto;
-        box-sizing:border-box; padding:16px;
-        border:1px solid #42ff9b; border-radius:14px;
-        background:#111923; color:#e8f4ee;
+        width:min(900px,100%); max-height:94%; overflow:auto;
+        box-sizing:border-box; padding:18px;
+        border:1px solid #42ff9b; border-radius:16px;
+        background:#101923; color:#edf8f1;
       }
-      #cardDetailsModal textarea {
-        display:block; width:100%; min-height:45vh;
-        box-sizing:border-box; padding:12px; margin:12px 0;
-        border:1px solid #49665a; border-radius:8px;
-        background:#080d12; color:#fff; font:14px/1.5 monospace;
+      #cardDetailsModal .cd-section {
+        margin:16px 0; padding:14px;
+        border:1px solid #344a40; border-radius:12px;
+        background:#0a1118;
       }
-      #cardDetailsModal .cd-actions { display:flex; gap:10px; flex-wrap:wrap; }
-      #cardDetailsModal button { min-height:44px; padding:10px 16px; }
+      #cardDetailsModal .cd-section h3 {
+        margin:0 0 12px; color:#42ff9b;
+      }
+      #cardDetailsModal .cd-grid {
+        display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+        gap:10px;
+      }
+      #cardDetailsModal label {
+        display:flex; flex-direction:column; gap:5px;
+        font-size:13px; color:#c5d8ce;
+      }
+      #cardDetailsModal input, #cardDetailsModal textarea {
+        width:100%; min-width:0; box-sizing:border-box;
+        padding:10px; border:1px solid #40584c; border-radius:8px;
+        background:#101b24; color:#fff; font:inherit;
+      }
+      #cardDetailsModal textarea { min-height:90px; resize:vertical; }
+      #cardDetailsModal .cd-actions {
+        display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;
+      }
+      #cardDetailsModal button {
+        min-height:44px; padding:10px 16px; border-radius:8px;
+        border:1px solid #42ff9b; background:#163c2b;
+        color:#fff; cursor:pointer;
+      }
+      #cardDetailsModal #cdStatus { white-space:pre-wrap; }
     `;
     document.head.appendChild(style);
 
     const modal = document.createElement("div");
     modal.id = "cardDetailsModal";
     modal.innerHTML = `
-      <section class="cd-box" role="dialog" aria-modal="true">
-        <h2>🃏 Karta tafsilotlari</h2>
-        <p>physics va roles maydonlarini JSON formatida tahrirlang.</p>
-        <textarea id="cdJson" spellcheck="false" autocapitalize="off"></textarea>
+      <section class="cd-box" role="dialog" aria-modal="true"
+               aria-labelledby="cdTitle">
+        <h2 id="cdTitle">⚽ eFootball — Karta statistikasi</h2>
+        <p>Har bir futbolchining kartasini alohida sozlang.</p>
+        <div id="cdForm"></div>
         <p id="cdStatus" role="status" aria-live="polite"></p>
         <div class="cd-actions">
           <button type="button" id="cdSave">💾 Saqlash</button>
@@ -599,14 +624,102 @@ function openCardDetailsEditor(template) {
   }
 
   const modal = cardDetailsModal;
-  const textarea = modal.querySelector("#cdJson");
+  const form = modal.querySelector("#cdForm");
   const status = modal.querySelector("#cdStatus");
-  textarea.value = JSON.stringify(template, null, 2);
+  const stats = template.stats && typeof template.stats === "object"
+    ? template.stats : {};
+  const positions = template.position_ratings &&
+    typeof template.position_ratings === "object"
+    ? template.position_ratings : {};
+
+  const groups = {
+    "⚔️ HUJUM": [
+      "Attacking Awareness", "Ball Control", "Dribbling",
+      "Tight Possession", "Low Pass", "Lofted Pass",
+      "Finishing", "Heading", "Set Piece Taking", "Curl"
+    ],
+    "⚡ JISMONIY": [
+      "Speed", "Acceleration", "Kicking Power", "Jumping",
+      "Physical Contact", "Balance", "Stamina"
+    ],
+    "🛡️ HIMOYA": [
+      "Defensive Awareness", "Defensive Engagement",
+      "Tackling", "Aggression"
+    ],
+    "🧤 DARVOZABON": [
+      "GK Awareness", "GK Catching", "GK Parrying",
+      "GK Reflexes", "GK Reach"
+    ]
+  };
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;",
+      '"': "&quot;", "'": "&#39;"
+    })[ch]);
+  }
+
+  function numberField(label, key, value, min, max) {
+    const safeValue = value == null ? "" : escapeHtml(value);
+    return `<label>${escapeHtml(label)}
+      <input data-key="${escapeHtml(key)}" type="number"
+        min="${min}" max="${max}" step="1" value="${safeValue}">
+    </label>`;
+  }
+
+  let html = `<div class="cd-section"><h3>📊 Karta ma'lumotlari</h3>
+    <div class="cd-grid">
+      ${numberField("Base OVR", "base_ovr", template.base_ovr, 0, 112)}
+      ${numberField("Max OVR", "max_ovr", template.max_ovr, 0, 112)}
+      ${numberField("Bo'yi (cm)", "height_cm", template.height_cm, 50, 260)}
+      ${numberField("Vazni (kg)", "weight_kg", template.weight_kg, 20, 250)}
+      ${numberField("Yoshi", "age", template.age, 10, 100)}
+    </div></div>`;
+
+  for (const [title, names] of Object.entries(groups)) {
+    html += `<div class="cd-section"><h3>${title}</h3><div class="cd-grid">`;
+    for (const name of names) {
+      html += numberField(name, "stat:" + name, stats[name], 0, 105);
+    }
+    html += `</div></div>`;
+  }
+
+  const positionNames = [
+    "CF", "SS", "LWF", "RWF", "AMF", "CMF", "DMF",
+    "LMF", "RMF", "LB", "CB", "RB", "GK"
+  ];
+  html += `<div class="cd-section"><h3>📍 Pozitsiyalar</h3><div class="cd-grid">`;
+  for (const name of positionNames) {
+    html += numberField(name, "position:" + name, positions[name], 0, 105);
+  }
+  html += `</div></div>`;
+
+  html += `<div class="cd-section"><h3>🎮 Skills</h3>
+    <label>Ko'nikmalar — har birini yangi qatordan yozing
+      <textarea data-key="skills" placeholder="Masalan: Double Touch">${escapeHtml(
+        Array.isArray(template.skills) ? template.skills.join("\n") : ""
+      )}</textarea>
+    </label></div>`;
+
+  html += `<div class="cd-section"><h3>🚀 Boosters</h3>
+    <label>Booster nomlari — har birini yangi qatordan yozing
+      <textarea data-key="boosters" placeholder="Booster nomlari">${escapeHtml(
+        Array.isArray(template.boosters) ? template.boosters.join("\n") : ""
+      )}</textarea>
+    </label></div>`;
+
+  html += `<div class="cd-section"><h3>🔗 Manba</h3>
+    <label>Ma'lumot manbasi
+      <input data-key="source" value="${escapeHtml(template.source || "manual")}">
+    </label></div>`;
+
+  form.innerHTML = html;
   status.textContent = "";
   modal.style.display = "flex";
 
   return new Promise(resolve => {
     let done = false;
+
     function finish(value) {
       if (done) return;
       done = true;
@@ -616,27 +729,91 @@ function openCardDetailsEditor(template) {
       modal.style.display = "none";
       resolve(value);
     }
+
     function save() {
       try {
-        const value = JSON.parse(textarea.value);
-        if (!value || typeof value !== "object" || Array.isArray(value)) {
-          throw new Error("Asosiy JSON obyekt bo‘lishi kerak.");
+        const value = {
+          ...template,
+          stats: { ...stats },
+          position_ratings: { ...positions },
+          skills: [],
+          boosters: []
+        };
+
+        for (const key of [
+          "base_ovr", "max_ovr", "height_cm", "weight_kg", "age"
+        ]) {
+          const input = form.querySelector(`[data-key="${key}"]`);
+          if (!input || input.value.trim() === "") {
+            value[key] = null;
+            continue;
+          }
+          const n = Number(input.value);
+          const limits = {
+            base_ovr: [0, 112], max_ovr: [0, 112],
+            height_cm: [50, 260], weight_kg: [20, 250], age: [10, 100]
+          }[key];
+          if (!Number.isInteger(n) || n < limits[0] || n > limits[1]) {
+            throw new Error(key + " qiymati noto'g'ri.");
+          }
+          value[key] = n;
         }
-        for (const key of ["physics", "roles"]) {
-          if (value[key] == null) value[key] = {};
-          if (typeof value[key] !== "object" || Array.isArray(value[key])) {
-            throw new Error(key + " JSON obyekt bo‘lishi kerak.");
+
+        for (const input of form.querySelectorAll("[data-key^='stat:']")) {
+          const key = input.dataset.key.slice(5);
+          if (input.value.trim() === "") {
+            delete value.stats[key];
+            continue;
+          }
+          const n = Number(input.value);
+          if (!Number.isInteger(n) || n < 0 || n > 105) {
+            throw new Error(key + " 0–105 oralig'ida bo'lishi kerak.");
+          }
+          value.stats[key] = n;
+        }
+
+        for (const input of form.querySelectorAll("[data-key^='position:']")) {
+          const key = input.dataset.key.slice(9);
+          if (input.value.trim() === "") {
+            delete value.position_ratings[key];
+            continue;
+          }
+          const n = Number(input.value);
+          if (!Number.isInteger(n) || n < 0 || n > 105) {
+            throw new Error(key + " pozitsiyasi 0–105 oralig'ida bo'lishi kerak.");
+          }
+          value.position_ratings[key] = n;
+        }
+
+        for (const key of ["skills", "boosters"]) {
+          const input = form.querySelector(`[data-key="${key}"]`);
+          value[key] = input.value.split(/\n|,/)
+            .map(item => item.trim()).filter(Boolean);
+          const maxItems = key === "skills" ? 200 : 100;
+          if (value[key].length > maxItems ||
+              value[key].some(item => item.length > 100)) {
+            throw new Error(key + " ro'yxati limiti: " + maxItems + " ta.");
           }
         }
+
+        value.source = form.querySelector('[data-key="source"]').value.trim()
+          || "manual";
+        for (const key of ["physics", "roles", "max_build"]) {
+          if (!value[key] || typeof value[key] !== "object" ||
+              Array.isArray(value[key])) value[key] = {};
+        }
+
         finish(value);
       } catch (error) {
-        status.textContent = "JSON xato: " + error.message;
+        status.textContent = "⚠️ " + error.message;
       }
     }
+
     function close() { finish(null); }
     function outside(event) {
       if (event.target === modal) close();
     }
+
     modal.querySelector("#cdSave").addEventListener("click", save);
     modal.querySelector("#cdClose").addEventListener("click", close);
     modal.addEventListener("click", outside);
