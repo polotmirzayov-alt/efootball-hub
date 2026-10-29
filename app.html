@@ -571,6 +571,26 @@ function openCardDetailsEditor(template) {
         border:1px solid #42ff9b; border-radius:16px;
         background:#101923; color:#edf8f1;
       }
+      #cardDetailsModal .cd-limits {
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+        gap:8px;
+        margin:14px 0;
+        padding:12px;
+        border:1px solid #42ff9b;
+        border-radius:12px;
+        background:linear-gradient(135deg,#101f1a,#111923);
+      }
+      #cardDetailsModal .cd-limits p {
+        margin:0;
+        padding:10px;
+        border:1px solid #29483a;
+        border-radius:8px;
+        background:#0b1512;
+        color:#eafff2;
+        font-size:13px;
+        font-weight:600;
+      }
       #cardDetailsModal .cd-section {
         margin:16px 0; padding:14px;
         border:1px solid #344a40; border-radius:12px;
@@ -612,6 +632,13 @@ function openCardDetailsEditor(template) {
                aria-labelledby="cdTitle">
         <h2 id="cdTitle">⚽ eFootball — Karta statistikasi</h2>
         <p>Har bir futbolchining kartasini alohida sozlang.</p>
+        <div class="cd-limits">
+          <p>📊 Statistikalar: 0–105</p>
+          <p>📍 Pozitsiya reytinglari: 0–105</p>
+          <p>🎮 Skills: 200 tagacha</p>
+          <p>🚀 Boosters: 100 tagacha</p>
+          <p>🏆 OVR: 0–112</p>
+        </div>
         <div id="cdForm"></div>
         <p id="cdStatus" role="status" aria-live="polite"></p>
         <div class="cd-actions">
