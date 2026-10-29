@@ -38,6 +38,8 @@ def create_card_details_tables(use_postgres=False, db_path=None):
                     skills TEXT NOT NULL DEFAULT '[]',
                     boosters TEXT NOT NULL DEFAULT '[]',
                     max_build TEXT NOT NULL DEFAULT '{}',
+                    physics TEXT NOT NULL DEFAULT '{}',
+                    roles TEXT NOT NULL DEFAULT '{}',
                     source TEXT NOT NULL DEFAULT 'manual',
                     updated_at TEXT NOT NULL DEFAULT ''
                 )
@@ -79,9 +81,40 @@ def create_card_details_tables(use_postgres=False, db_path=None):
                     skills TEXT NOT NULL DEFAULT '[]',
                     boosters TEXT NOT NULL DEFAULT '[]',
                     max_build TEXT NOT NULL DEFAULT '{}',
+                    physics TEXT NOT NULL DEFAULT '{}',
+                    roles TEXT NOT NULL DEFAULT '{}',
                     source TEXT NOT NULL DEFAULT 'manual',
                     updated_at TEXT NOT NULL DEFAULT ''
                 )
             """)
+
+    # Eski bazalarga ustunlarni ma'lumotlarni o'chirmasdan qo'shish.
+    if use_postgres:
+        from database.postgres_db import get_connection
+        with get_connection() as db:
+            db.execute("""
+                ALTER TABLE player_card_details
+                ADD COLUMN IF NOT EXISTS physics TEXT NOT NULL DEFAULT '{}'
+            """)
+            db.execute("""
+                ALTER TABLE player_card_details
+                ADD COLUMN IF NOT EXISTS roles TEXT NOT NULL DEFAULT '{}'
+            """)
+    else:
+        with sqlite3.connect(db_path) as db:
+            columns = {
+                row[1] for row in
+                db.execute("PRAGMA table_info(player_card_details)").fetchall()
+            }
+            if "physics" not in columns:
+                db.execute(
+                    "ALTER TABLE player_card_details "
+                    "ADD COLUMN physics TEXT NOT NULL DEFAULT '{}'"
+                )
+            if "roles" not in columns:
+                db.execute(
+                    "ALTER TABLE player_card_details "
+                    "ADD COLUMN roles TEXT NOT NULL DEFAULT '{}'"
+                )
 
     print("PLAYER CARD DETAILS: jadvallar tayyor.")

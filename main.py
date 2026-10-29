@@ -431,9 +431,9 @@ def card_details_api(card_id):
             if not row:
                 return jsonify({"card_id": card_id, "details": None})
             result = dict(row)
-            for key in ("stats", "position_ratings", "skills", "boosters", "max_build"):
+            for key in ("stats", "position_ratings", "skills", "boosters", "max_build", "physics", "roles"):
                 result[key] = _card_json(result.get(key), {} if key in
-                    ("stats", "position_ratings", "max_build") else [])
+                    ("stats", "position_ratings", "max_build", "physics", "roles") else [])
             return jsonify(result)
 
         data = request.get_json(silent=True)
@@ -465,6 +465,8 @@ def card_details_api(card_id):
         skills = data.get("skills", [])
         boosters = data.get("boosters", [])
         max_build = data.get("max_build", {})
+        physics = data.get("physics", {})
+        roles = data.get("roles", {})
 
         if not isinstance(stats, dict) or len(stats) > 50:
             return jsonify({"error": "stats noto'g'ri"}), 400
@@ -482,6 +484,10 @@ def card_details_api(card_id):
             return jsonify({"error": "boosters noto'g'ri"}), 400
         if not isinstance(max_build, dict) or len(max_build) > 50:
             return jsonify({"error": "max_build noto'g'ri"}), 400
+        if not isinstance(physics, dict) or len(physics) > 50:
+            return jsonify({"error": "physics noto'g'ri"}), 400
+        if not isinstance(roles, dict) or len(roles) > 50:
+            return jsonify({"error": "roles noto'g'ri"}), 400
 
         payload = (
             card_id, base_ovr, max_ovr, height, weight, age,
@@ -490,6 +496,8 @@ def card_details_api(card_id):
             json.dumps(skills, ensure_ascii=False),
             json.dumps(boosters, ensure_ascii=False),
             json.dumps(max_build, ensure_ascii=False),
+            json.dumps(physics, ensure_ascii=False),
+            json.dumps(roles, ensure_ascii=False),
             str(data.get("source", "manual"))[:80],
             __import__("datetime").datetime.now(
                 __import__("datetime").timezone.utc
@@ -506,15 +514,16 @@ def card_details_api(card_id):
                 db.execute("""
                     INSERT INTO player_card_details
                     (card_id, base_ovr, max_ovr, height_cm, weight_kg, age,
-                     stats, position_ratings, skills, boosters, max_build, source, updated_at)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                     stats, position_ratings, skills, boosters, max_build, physics, roles, source, updated_at)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     ON CONFLICT (card_id) DO UPDATE SET
                       base_ovr=EXCLUDED.base_ovr, max_ovr=EXCLUDED.max_ovr,
                       height_cm=EXCLUDED.height_cm, weight_kg=EXCLUDED.weight_kg,
                       age=EXCLUDED.age, stats=EXCLUDED.stats,
                       position_ratings=EXCLUDED.position_ratings,
                       skills=EXCLUDED.skills, boosters=EXCLUDED.boosters,
-                      max_build=EXCLUDED.max_build, source=EXCLUDED.source,
+                      max_build=EXCLUDED.max_build, physics=EXCLUDED.physics,
+                      roles=EXCLUDED.roles, source=EXCLUDED.source,
                       updated_at=EXCLUDED.updated_at
                 """, payload)
         else:
@@ -527,15 +536,16 @@ def card_details_api(card_id):
                 db.execute("""
                     INSERT INTO player_card_details
                     (card_id, base_ovr, max_ovr, height_cm, weight_kg, age,
-                     stats, position_ratings, skills, boosters, max_build, source, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     stats, position_ratings, skills, boosters, max_build, physics, roles, source, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     ON CONFLICT(card_id) DO UPDATE SET
                       base_ovr=excluded.base_ovr, max_ovr=excluded.max_ovr,
                       height_cm=excluded.height_cm, weight_kg=excluded.weight_kg,
                       age=excluded.age, stats=excluded.stats,
                       position_ratings=excluded.position_ratings,
                       skills=excluded.skills, boosters=excluded.boosters,
-                      max_build=excluded.max_build, source=excluded.source,
+                      max_build=excluded.max_build, physics=excluded.physics,
+                      roles=excluded.roles, source=excluded.source,
                       updated_at=excluded.updated_at
                 """, payload)
 
