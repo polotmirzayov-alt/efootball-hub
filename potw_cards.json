@@ -1,0 +1,327 @@
+{
+  "source": "PESDB",
+  "total_cards": 40,
+  "cards": [
+    {
+      "featured_id": "52912923459704",
+      "name": "Phil Foden",
+      "player_url": "https://pesdb.net/efootball/players/phil-foden-52912923459704",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923459704.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923500110",
+      "name": "Nico Paz",
+      "player_url": "https://pesdb.net/efootball/players/nico-paz-52912923500110",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923500110.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923471791",
+      "name": "Victor Osimhen",
+      "player_url": "https://pesdb.net/efootball/players/victor-osimhen-52912923471791",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923471791.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923449122",
+      "name": "Bernardo Silva",
+      "player_url": "https://pesdb.net/efootball/players/bernardo-silva-52912923449122",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923449122.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923461501",
+      "name": "Scott McTominay",
+      "player_url": "https://pesdb.net/efootball/players/scott-mctominay-52912923461501",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923461501.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923381523",
+      "name": "Yann Sommer",
+      "player_url": "https://pesdb.net/efootball/players/yann-sommer-52912923381523",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923381523.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923519041",
+      "name": "Rio Ngumoha",
+      "player_url": "https://pesdb.net/efootball/players/rio-ngumoha-52912923519041",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923519041.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923467603",
+      "name": "Carlos Augusto",
+      "player_url": "https://pesdb.net/efootball/players/carlos-augusto-52912923467603",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923467603.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923454893",
+      "name": "Mario Hermoso",
+      "player_url": "https://pesdb.net/efootball/players/mario-hermoso-52912923454893",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923454893.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923449613",
+      "name": "Lucas Hernández",
+      "player_url": "https://pesdb.net/efootball/players/lucas-hernandez-52912923449613",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923449613.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52912923389598",
+      "name": "Ross Barkley",
+      "player_url": "https://pesdb.net/efootball/players/ross-barkley-52912923389598",
+      "image_url": "https://pesdb.net/assets/img/card/f52912923389598.png",
+      "pack": "POTW European Club Championship 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601956478",
+      "name": "Kylian Mbappé",
+      "player_url": "https://pesdb.net/efootball/players/kylian-mbappe-52904601956478",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601956478.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601956967",
+      "name": "Gabriel Magalhães",
+      "player_url": "https://pesdb.net/efootball/players/gabriel-magalhaes-52904601956967",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601956967.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601981375",
+      "name": "Suzuki Zion",
+      "player_url": "https://pesdb.net/efootball/players/suzuki-zion-52904601981375",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601981375.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601957864",
+      "name": "Christian Pulišić",
+      "player_url": "https://pesdb.net/efootball/players/christian-pulisic-52904601957864",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601957864.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601946818",
+      "name": "Alejandro Grimaldo",
+      "player_url": "https://pesdb.net/efootball/players/alejandro-grimaldo-52904601946818",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601946818.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601987919",
+      "name": "Maximilian Beier",
+      "player_url": "https://pesdb.net/efootball/players/maximilian-beier-52904601987919",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601987919.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904602005240",
+      "name": "Jérémy Jacquet",
+      "player_url": "https://pesdb.net/efootball/players/jeremy-jacquet-52904602005240",
+      "image_url": "https://pesdb.net/assets/img/card/f52904602005240.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601993215",
+      "name": "Mathys Tel",
+      "player_url": "https://pesdb.net/efootball/players/mathys-tel-52904601993215",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601993215.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601990379",
+      "name": "Andy Diouf",
+      "player_url": "https://pesdb.net/efootball/players/andy-diouf-52904601990379",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601990379.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601961971",
+      "name": "Douglas Luiz",
+      "player_url": "https://pesdb.net/efootball/players/douglas-luiz-52904601961971",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601961971.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "52904601949372",
+      "name": "Álex Berenguer",
+      "player_url": "https://pesdb.net/efootball/players/alex-berenguer-52904601949372",
+      "image_url": "https://pesdb.net/assets/img/card/f52904601949372.png",
+      "pack": "POTW Worldwide 29 Oct '26 11 Players 2026-10-29",
+      "category": "POTW"
+    },
+    {
+      "featured_id": "53988275941823",
+      "name": "Gift Orban",
+      "player_url": "https://pesdb.net/efootball/players/gift-orban-53988275941823",
+      "image_url": "https://pesdb.net/assets/img/card/f53988275941823.png",
+      "pack": "POTM Trendyol Süper Lig 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53988275907363",
+      "name": "Abdülkerim Bardakcı",
+      "player_url": "https://pesdb.net/efootball/players/abdulkerim-bardakci-53988275907363",
+      "image_url": "https://pesdb.net/assets/img/card/f53988275907363.png",
+      "pack": "POTM Trendyol Süper Lig 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53988275902638",
+      "name": "İrfan Can Kahveci",
+      "player_url": "https://pesdb.net/efootball/players/irfan-can-kahveci-53988275902638",
+      "image_url": "https://pesdb.net/assets/img/card/f53988275902638.png",
+      "pack": "POTM Trendyol Süper Lig 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53988275961077",
+      "name": "Noah Saviolo",
+      "player_url": "https://pesdb.net/efootball/players/noah-saviolo-53988275961077",
+      "image_url": "https://pesdb.net/assets/img/card/f53988275961077.png",
+      "pack": "POTM Trendyol Süper Lig 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53988275928737",
+      "name": "Adrian Benedyczak",
+      "player_url": "https://pesdb.net/efootball/players/adrian-benedyczak-53988275928737",
+      "image_url": "https://pesdb.net/assets/img/card/f53988275928737.png",
+      "pack": "POTM Trendyol Süper Lig 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53988275905208",
+      "name": "Emirhan Topçu",
+      "player_url": "https://pesdb.net/efootball/players/emirhan-topcu-53988275905208",
+      "image_url": "https://pesdb.net/assets/img/card/f53988275905208.png",
+      "pack": "POTM Trendyol Süper Lig 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53991228723165",
+      "name": "Vitor Roque",
+      "player_url": "https://pesdb.net/efootball/players/vitor-roque-53991228723165",
+      "image_url": "https://pesdb.net/assets/img/card/f53991228723165.png",
+      "pack": "POTM Brasileirão 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53991228698710",
+      "name": "Kaio Jorge",
+      "player_url": "https://pesdb.net/efootball/players/kaio-jorge-53991228698710",
+      "image_url": "https://pesdb.net/assets/img/card/f53991228698710.png",
+      "pack": "POTM Brasileirão 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53991228575687",
+      "name": "Fábio",
+      "player_url": "https://pesdb.net/efootball/players/fabio-53991228575687",
+      "image_url": "https://pesdb.net/assets/img/card/f53991228575687.png",
+      "pack": "POTM Brasileirão 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53991228739881",
+      "name": "Álvaro Montoro",
+      "player_url": "https://pesdb.net/efootball/players/alvaro-montoro-53991228739881",
+      "image_url": "https://pesdb.net/assets/img/card/f53991228739881.png",
+      "pack": "POTM Brasileirão 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53991228688058",
+      "name": "Marcinho",
+      "player_url": "https://pesdb.net/efootball/players/marcinho-53991228688058",
+      "image_url": "https://pesdb.net/assets/img/card/f53991228688058.png",
+      "pack": "POTM Brasileirão 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53991228619568",
+      "name": "Guillermo Varela",
+      "player_url": "https://pesdb.net/efootball/players/guillermo-varela-53991228619568",
+      "image_url": "https://pesdb.net/assets/img/card/f53991228619568.png",
+      "pack": "POTM Brasileirão 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53985859981027",
+      "name": "Matheus Thuler",
+      "player_url": "https://pesdb.net/efootball/players/matheus-thuler-53985859981027",
+      "image_url": "https://pesdb.net/assets/img/card/f53985859981027.png",
+      "pack": "POTM J.LEAGUE 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53985859992727",
+      "name": "Kaneko Takuro",
+      "player_url": "https://pesdb.net/efootball/players/kaneko-takuro-53985859992727",
+      "image_url": "https://pesdb.net/assets/img/card/f53985859992727.png",
+      "pack": "POTM J.LEAGUE 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53985859992654",
+      "name": "Mateus Brunetti",
+      "player_url": "https://pesdb.net/efootball/players/mateus-brunetti-53985859992654",
+      "image_url": "https://pesdb.net/assets/img/card/f53985859992654.png",
+      "pack": "POTM J.LEAGUE 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53985859984212",
+      "name": "Tatsuta Yugo",
+      "player_url": "https://pesdb.net/efootball/players/tatsuta-yugo-53985859984212",
+      "image_url": "https://pesdb.net/assets/img/card/f53985859984212.png",
+      "pack": "POTM J.LEAGUE 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53985859977501",
+      "name": "Marcinho",
+      "player_url": "https://pesdb.net/efootball/players/marcinho-53985859977501",
+      "image_url": "https://pesdb.net/assets/img/card/f53985859977501.png",
+      "pack": "POTM J.LEAGUE 6 Players 2026-10-22",
+      "category": "POTM"
+    },
+    {
+      "featured_id": "53985859923942",
+      "name": "Kim Seung-Gyu",
+      "player_url": "https://pesdb.net/efootball/players/kim-seung-gyu-53985859923942",
+      "image_url": "https://pesdb.net/assets/img/card/f53985859923942.png",
+      "pack": "POTM J.LEAGUE 6 Players 2026-10-22",
+      "category": "POTM"
+    }
+  ],
+  "errors": []
+}

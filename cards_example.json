@@ -1,0 +1,13 @@
+[
+  {
+    "player_name": "Cristiano Ronaldo",
+    "card_name": "Cristiano Ronaldo Epic Example",
+    "card_type": "Epic",
+    "rating": 102,
+    "position": "CF",
+    "playing_style": "Goal Poacher",
+    "image": "",
+    "release_date": "",
+    "source": "json_import"
+  }
+]

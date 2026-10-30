@@ -1,0 +1,43 @@
+
+import sqlite3
+
+DB_NAME = "efootball.db"
+
+def update_player():
+    name = input("Futbolchi ismi: ").strip()
+
+    try:
+        rating = int(input("Yangi reyting (0-110): "))
+        if not 0 <= rating <= 110:
+            print("Reyting 0 dan 110 gacha bo'lishi kerak.")
+            return
+    except ValueError:
+        print("Reytingni raqam bilan kiriting.")
+        return
+
+    with sqlite3.connect(DB_NAME) as db:
+        player = db.execute(
+            "SELECT id, name FROM players WHERE name LIKE ?",
+            (f"%{name}%",)
+        ).fetchall()
+
+        if not player:
+            print("Futbolchi topilmadi.")
+            return
+
+        if len(player) > 1:
+            print("Bir nechta futbolchi topildi:")
+            for p in player:
+                print(f"ID: {p[0]} | {p[1]}")
+            print("Aniqroq ism kiriting.")
+            return
+
+        db.execute(
+            "UPDATE players SET rating = ? WHERE id = ?",
+            (rating, player[0][0])
+        )
+
+    print(f"{player[0][1]} reytingi {rating} ga o'zgartirildi!")
+
+if __name__ == "__main__":
+    update_player()

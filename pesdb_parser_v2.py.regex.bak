@@ -1,0 +1,219 @@
+import re
+import json
+import html
+import urllib.request
+from pathlib import Path
+
+
+def clean(value):
+    return html.unescape(
+        re.sub(r"<[^>]+>", "", str(value))
+    ).strip()
+
+
+def parse_page(page, url=""):
+    result = {
+        "player_url": url,
+        "name": "",
+        "overall_rating": None,
+        "max_overall": None,
+        "card_type": "",
+        "card_name": "",
+        "nationality": "",
+        "club": "",
+        "position": None,
+        "available_positions": [],
+        "height_cm": None,
+        "weight_kg": None,
+        "age": None,
+        "attacking_playing_style": "",
+        "defensive_playing_style": "",
+        "stats": {},
+        "skills": [],
+        "ai_playing_styles": [],
+        "boosters": [],
+        "static_stats": {},
+        "details": {},
+        "source": "",
+        "source_player_id": "",
+        "featured_id": None
+    }
+
+    # Embedded progression JSON
+    match = re.search(
+        r'<script[^>]*id="player-progression-data"[^>]*>'
+        r'(.*?)</script>',
+        page,
+        re.S
+    )
+
+    data = {}
+    if match:
+        try:
+            data = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            print("OGOHLANTIRISH: progression JSON o'qilmadi")
+
+    compare = data.get("compare", {})
+
+    result["source"] = data.get("source", compare.get("source", ""))
+    result["source_player_id"] = compare.get("playerId", "")
+    result["featured_id"] = compare.get("featuredId")
+    result["name"] = compare.get("playerName", "")
+    result["card_type"] = compare.get("cardType", "")
+    result["card_name"] = compare.get("featuredName", "")
+    result["nationality"] = compare.get("nationality", "")
+    result["club"] = compare.get("teamName", "")
+
+    result["overall_rating"] = data.get("baseOverall")
+    result["max_overall"] = data.get("databaseMaxOverall")
+
+    result["position"] = data.get("position")
+    result["available_positions"] = data.get("positions", [])
+
+    # Primary and secondary positions from visible PESDB page
+    result["primary_position"] = ""
+    result["secondary_positions"] = []
+
+    for label in ["Primary Position", "Secondary Positions"]:
+        pattern = (
+            r"<dt[^>]*>\\s*" + label +
+            r"\\s*</dt>\\s*<dd[^>]*>(.*?)</dd>"
+        )
+        found = re.search(pattern, page, re.S | re.I)
+
+        if not found:
+            continue
+
+        links = re.findall(r"<a\\b[^>]*>(.*?)</a>", found.group(1), re.S | re.I)
+        values = [clean(x) for x in links if clean(x)]
+
+        if not values:
+            text = clean(found.group(1))
+            values = [x.strip() for x in text.split(",") if x.strip()]
+
+        if label == "Primary Position" and values:
+            result["primary_position"] = values[0]
+
+        elif label == "Secondary Positions":
+            result["secondary_positions"] = list(dict.fromkeys(values))
+
+    primary = result["primary_position"]
+    result["secondary_positions"] = [
+        p for p in result["secondary_positions"] if p != primary
+    ]
+
+    result["height_cm"] = data.get("height")
+
+    result["attacking_playing_style"] = (
+        compare.get("attackingPlayingStyle", "")
+    )
+    result["defensive_playing_style"] = (
+        compare.get("defensivePlayingStyle", "")
+    )
+
+    result["stats"] = data.get("baseStats", {})
+    result["skills"] = compare.get("playerSkills", [])
+    result["ai_playing_styles"] = compare.get("aiPlayingStyles", [])
+    result["boosters"] = data.get("boosters", [])
+    result["static_stats"] = compare.get("staticStats", {})
+    result["details"] = compare.get("details", {})
+
+    # Player name fallback
+    if not result["name"]:
+        m = re.search(
+            r'<h1[^>]*id="player-name"[^>]*>(.*?)</h1>',
+            page, re.S
+        )
+        if m:
+            result["name"] = clean(m.group(1))
+
+    # Image
+    m = re.search(
+        r'<meta[^>]*property="og:image"[^>]*content="([^"]+)"',
+        page
+    )
+    result["image_url"] = html.unescape(m.group(1)) if m else ""
+
+    # Description fallback
+    m = re.search(
+        r'<meta[^>]*name="description"[^>]*content="([^"]*)"',
+        page
+    )
+    if m and result["overall_rating"] is None:
+        description = html.unescape(m.group(1))
+        rating = re.search(r"Overall Rating (\d+)", description)
+        maximum = re.search(r"Max Overall (\d+)", description)
+
+        if rating:
+            result["overall_rating"] = int(rating.group(1))
+        if maximum:
+            result["max_overall"] = int(maximum.group(1))
+
+    # Detail values from visible page
+    detail_map = {
+        "Weight": "weight_kg",
+        "Age": "age"
+    }
+
+    for label, key in detail_map.items():
+        m = re.search(
+            rf'{label}</[^>]+>\s*<[^>]*>([^<]+)',
+            page,
+            re.S | re.I
+        )
+        if m:
+            value = re.search(r"\d+", clean(m.group(1)))
+            if value:
+                result[key] = int(value.group())
+
+    # Card page URL fallback
+    if not result["source_player_id"]:
+        m = re.search(r"players/[^/]*-(\d+)", url)
+        if m:
+            result["source_player_id"] = m.group(1)
+
+    return result
+
+
+def parse_player(url):
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Mozilla/5.0"}
+    )
+
+    with urllib.request.urlopen(req, timeout=30) as response:
+        page = response.read().decode("utf-8", "replace")
+
+    return parse_page(page, url)
+
+
+if __name__ == "__main__":
+    local_file = Path("player_test.html")
+
+    if local_file.exists():
+        page = local_file.read_text(encoding="utf-8")
+        player = parse_page(
+            page,
+            "https://pesdb.net/efootball/players/phil-foden-52912923459704"
+        )
+    else:
+        with open("potw_cards.json", encoding="utf-8") as f:
+            cards = json.load(f)["cards"]
+        player = parse_player(cards[0]["player_url"])
+
+    output = "player_parsed_v2.json"
+
+    with open(output, "w", encoding="utf-8") as f:
+        json.dump(player, f, ensure_ascii=False, indent=2)
+
+    print("PARSER 2.0 ISHLADI")
+    print("Futbolchi:", player["name"])
+    print("OVR:", player["overall_rating"])
+    print("Max OVR:", player["max_overall"])
+    print("Karta:", player["card_name"])
+    print("Statlar:", len(player["stats"]))
+    print("Skills:", len(player["skills"]))
+    print("AI Styles:", len(player["ai_playing_styles"]))
+    print("Boosters:", len(player["boosters"]))
+    print("JSON:", output)

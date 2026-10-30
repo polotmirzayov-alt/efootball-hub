@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eFOOTBALL HUB — Player Profile</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0e1621;color:#fff;font-family:Arial,sans-serif;padding:12px}
+button{cursor:pointer}
+.header,.panel{background:#17212b;border-radius:12px;padding:15px;margin-bottom:12px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.header h2{font-size:20px}
+.header p{color:#00bcd4;font-size:12px;margin-top:5px}
+button,.select{background:#243447;color:#fff;border:1px solid #3b5065;border-radius:7px;padding:9px}
+.hero{position:relative;text-align:center;padding:22px 12px;background:linear-gradient(145deg,#263b50,#111923);border:2px solid #d4af37;border-radius:16px;margin-bottom:14px}
+.rating{position:absolute;top:12px;left:12px;text-align:left}
+.rating strong{font-size:32px;display:block;color:#f1d16a}
+.rating span{font-size:12px;color:#00d5e8}
+.photo{
+  width:180px;
+  height:220px;
+  object-fit:cover;
+  object-position:top;
+  border-radius:10px;
+  border:3px solid #d4af37;
+  margin:12px auto;
+  display:block;
+  background:#243447;
+;padding:7px 10px;border-radius:7px;font-size:12px}
+.tabs{display:flex;gap:7px;overflow-x:auto;margin:12px 0}
+.tabs button{white-space:nowrap}
+.tabs button.active{background:#d4af37;color:#111}
+.section-title{font-size:13px;color:#00c5d9;letter-spacing:1px;margin:17px 0 9px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:#17212b;padding:10px;border-radius:8px;font-size:12px}
+.stat-top{display:flex;justify-content:space-between;gap:6px;margin-bottom:7px}
+.stat strong{color:#f1d16a}
+.bar{height:5px;background:#304050;border-radius:9px;overflow:hidden}
+.fill{height:100%;background:#2ecc71}
+.badges{display:flex;gap:7px;flex-wrap:wrap}
+.badge{background:#74449a;border-radius:7px;padding:8px;font-size:12px}
+.pos{background:#17212b;text-align:center;padding:12px 5px;border-radius:8px;border:1px solid #2ecc71}
+.pos span{display:block;color:#a7b6c4;font-size:11px;margin-bottom:5px}
+.pos strong{color:#2ecc71;font-size:19px}
+.footer{color:#8293a3;text-align:center;font-size:11px;padding:15px}
+.hidden{display:none}
+@media(min-width:600px){body{max-width:760px;margin:auto}.grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h2>⚽ eFOOTBALL HUB</h2><p>PLAYER DATABASE</p></div>
+  <button onclick="history.back()">← Orqaga</button>
+</div>
+
+<div id="loading" class="panel">Futbolchi ma’lumotlari yuklanmoqda...</div>
+<div id="error" class="panel hidden">Futbolchi topilmadi. Orqaga qaytib, boshqa futbolchini tanlang.</div>
+
+<main id="profile" class="hidden">
+  <section class="hero">
+    <div class="rating"><strong id="rating">--</strong><span id="position">--</span></div>
+    <img id="photo" class="photo hidden" alt="Futbolchi rasmi">
+    <div id="noPhoto" class="photo" style="display:flex;align-items:center;justify-content:center;margin:12px auto;font-size:42px">⚽</div>
+    <h1 id="name">Futbolchi</h1>
+    <p id="club" class="muted"></p>
+    <div class="pills">
+      <span class="pill" id="nationality"></span>
+      <span class="pill" id="cardType"></span>
+      <span class="pill" id="level"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="cardPicker">
+    <h3 class="section-title">PLAYER CARD</h3>
+    <label for="cardSelect">Kartani tanlang</label>
+    <select id="cardSelect" style="width:100%;margin-top:8px">
+      <option value="">Kartalar yuklanmoqda...</option>
+    </select>
+    <p id="cardStatus" class="muted">Karta ma’lumotlari yuklanmoqda...</p>
+  </section>
+
+  <div class="tabs">
+    <button class="active" data-tab="stats">📊 Stats</button>
+    <button data-tab="builds">🧩 Builds</button>
+    <button data-tab="skills">⚡ Skills</button>
+    <button data-tab="positions">🗺️ Positions</button>
+  </div>
+
+  <section id="stats" class="panel">
+    <h3 class="section-title">PLAYER INFORMATION</h3>
+    <div class="grid" id="infoGrid"></div>
+    <h3 class="section-title">PLAYER STATS</h3>
+    <p class="muted">Statistikalar hozircha namunaviy. Keyinchalik har bir futbolchi uchun bazaga alohida kiritamiz.</p>
+    <div class="grid" id="statsGrid" style="margin-top:10px"></div>
+  </section>
+
+  <section id="builds" class="panel hidden">
+    <h3 class="section-title">PLAYER BUILDS</h3>
+    <p class="muted" id="buildStatus">BUILD MASTER ma’lumotlari yuklanmoqda...</p>
+    <div class="grid" id="buildGrid" style="margin-top:10px"></div>
+    <h3 class="section-title">HIGHLIGHTS</h3>
+    <div class="badges" id="highlightsGrid"></div>
+    <h3 class="section-title">MASLAHAT</h3>
+    <p id="buildTip" class="muted">Hali maslahat kiritilmagan.</p>
+  </section>
+
+  <section id="skills" class="panel hidden">
+    <h3 class="section-title">PLAYER SKILLS</h3>
+    <div class="badges" id="skillsGrid"></div>
+    <p class="muted" style="margin-top:12px">Ko‘nikmalar hozircha namuna. Haqiqiy ma’lumotlarni keyin qo‘shamiz.</p>
+  </section>
+
+  <section id="positions" class="panel hidden">
+    <h3 class="section-title">POSITION RATINGS</h3>
+    <div class="grid" id="positionsGrid"></div>
+    <p class="muted" style="margin-top:12px">Pozitsiya reytinglari ham hozircha namuna.</p>
+  </section>
+</main>
+<div class="footer">eFOOTBALL HUB • PLAYER PROFILE</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const playerId = params.get("id");
+
+function addStat(label,value){
+  const n = Math.max(0,Math.min(99,Number(value)||0));
+  return `<div class="stat"><div class="stat-top"><span>${label}</span><strong>${n}</strong></div><div class="bar"><div class="fill" style="width:${n}%"></div></div></div>`;
+}
+
+function showTab(id){
+  document.querySelectorAll("main section.panel").forEach(s=>s.classList.toggle("hidden",s.id!==id));
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+
+
+function showUnknown(container, message) {
+  $(container).textContent = message;
+}
+
+function renderObjectStats(container, obj) {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj) ||
+      Object.keys(obj).length === 0) {
+    showUnknown(container, "Ma’lumot mavjud emas.");
+    return;
+  }
+  $(container).innerHTML = "";
+  for (const [label, value] of Object.entries(obj)) {
+    const item = document.createElement("div");
+    item.className = "stat";
+    const title = document.createElement("div");
+    title.textContent = label;
+    const val = document.createElement("strong");
+    val.textContent = value == null || value === "" ? "—" : String(value);
+    item.append(title, val);
+    $(container).appendChild(item);
+  }
+}
+
+function renderBadges(container, values, emptyMessage) {
+  $(container).replaceChildren();
+  if (!Array.isArray(values) || values.length === 0) {
+    $(container).textContent = emptyMessage;
+    return;
+  }
+  for (const value of values) {
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = String(value);
+    $(container).appendChild(badge);
+  }
+}
+
+async function loadPlayerCards(player) {
+  const select = $("cardSelect");
+  select.replaceChildren();
+  const initial = document.createElement("option");
+  initial.value = "";
+  initial.textContent = "Kartani tanlang";
+  select.appendChild(initial);
+
+  try {
+    const response = await fetch(`/api/players/${encodeURIComponent(player.id)}/cards`);
+    if (!response.ok) throw new Error("Kartalar API xatosi");
+    const cards = await response.json();
+
+    if (!Array.isArray(cards) || cards.length === 0) {
+      $("cardStatus").textContent =
+        "Bu futbolchi uchun alohida karta hali bazaga kiritilmagan.";
+      select.disabled = true;
+      showUnknown("statsGrid", "Karta statistikasi mavjud emas.");
+      showUnknown("skillsGrid", "Karta ko‘nikmalari mavjud emas.");
+      showUnknown("positionsGrid", "Pozitsiya reytinglari mavjud emas.");
+      return;
+    }
+
+    select.disabled = false;
+    for (const card of cards) {
+      const option = document.createElement("option");
+      option.value = String(card.id);
+      option.textContent =
+        `${card.card_name || "Nomsiz karta"} — OVR ${card.rating ?? "—"}`;
+      select.appendChild(option);
+    }
+
+    select.onchange = () => {
+      const chosen = cards.find(c => String(c.id) === select.value);
+      if (chosen) loadCardDetails(chosen);
+    };
+
+    select.value = String(cards[0].id);
+    await loadCardDetails(cards[0]);
+  } catch (error) {
+    console.error("Karta yuklash xatosi:", error);
+    $("cardStatus").textContent = "Kartalarni yuklab bo‘lmadi.";
+    select.disabled = true;
+  }
+}
+
+async function loadCardDetails(card) {
+  $("cardStatus").textContent = "Karta tafsilotlari yuklanmoqda...";
+  $("rating").textContent = card.rating ?? "--";
+  $("position").textContent = card.position || "--";
+  $("cardType").textContent = "🃏 " + (card.card_type || "Noma’lum");
+
+  showUnknown("statsGrid", "Ma’lumot yuklanmoqda...");
+  showUnknown("skillsGrid", "Ma’lumot yuklanmoqda...");
+  showUnknown("positionsGrid", "Ma’lumot yuklanmoqda...");
+  showUnknown("buildGrid", "Ma’lumot yuklanmoqda...");
+  showUnknown("highlightsGrid", "Ma’lumot yuklanmoqda.");
+
+  try {
+    const response = await fetch(`/api/cards/${encodeURIComponent(card.id)}/details`);
+    if (!response.ok) throw new Error("Karta tafsilotlari API xatosi");
+
+    const result = await response.json();
+    const details = result.details === null ? null : result;
+
+    if (!details) {
+      $("cardStatus").textContent =
+        "Karta tanlandi, lekin batafsil ma'lumotlar kiritilmagan.";
+      showUnknown("statsGrid", "Statistika mavjud emas.");
+      showUnknown("skillsGrid", "Ko‘nikmalar mavjud emas.");
+      showUnknown("positionsGrid", "Pozitsiya reytinglari mavjud emas.");
+
+      const buildResponse = await fetch(
+        `/api/cards/${encodeURIComponent(card.id)}/build`
+      );
+      if (!buildResponse.ok) {
+        throw new Error("Karta BUILD MASTER API xatosi");
+      }
+
+      const buildResult = await buildResponse.json();
+      const cardBuild = buildResult.build;
+
+      if (cardBuild) {
+        renderObjectStats("buildGrid", cardBuild.stats);
+        renderBadges(
+          "highlightsGrid",
+          cardBuild.highlights,
+          "Karta highlights ma'lumoti mavjud emas."
+        );
+        $("buildStatus").textContent =
+          "Tanlangan karta uchun BUILD MASTER";
+        $("buildTip").textContent =
+          cardBuild.tip || "Karta maslahati mavjud emas.";
+      } else {
+        showUnknown("buildGrid", "BUILD MASTER hali kiritilmagan.");
+        showUnknown("highlightsGrid", "Highlights mavjud emas.");
+        $("buildStatus").textContent =
+          "Karta uchun BUILD MASTER kiritilmagan.";
+        $("buildTip").textContent = "Maslahat mavjud emas.";
+      }
+      return;
+    }
+
+    $("cardStatus").textContent =
+      "Tanlangan karta: " + (card.card_name || "Nomsiz karta") +
+      " | MAX OVR: " + (details.max_ovr ?? "Kiritilmagan");
+    $("rating").textContent = card.rating ?? "--";
+    $("position").textContent = card.position || "--";
+
+    renderObjectStats("statsGrid", details.stats);
+    renderObjectStats("positionsGrid", details.position_ratings);
+    renderBadges("skillsGrid", details.skills, "Ko‘nikmalar mavjud emas.");
+
+    // Tanlangan kartaning alohida BUILD MASTER ma'lumotlari.
+    const buildResponse = await fetch(
+      `/api/cards/${encodeURIComponent(card.id)}/build`
+    );
+    if (!buildResponse.ok) {
+      throw new Error("Karta BUILD MASTER API xatosi");
+    }
+
+    const buildResult = await buildResponse.json();
+    const cardBuild = buildResult.build;
+
+    if (cardBuild) {
+      renderObjectStats("buildGrid", cardBuild.stats);
+      renderBadges(
+        "highlightsGrid",
+        cardBuild.highlights,
+        "Karta highlights ma'lumoti mavjud emas."
+      );
+      $("buildStatus").textContent =
+        "Tanlangan karta uchun BUILD MASTER";
+      $("buildTip").textContent =
+        cardBuild.tip || "Karta maslahati mavjud emas.";
+    } else {
+      // BUILD MASTER kiritilmagan bo‘lsa, eski MAX BUILD ko‘rsatiladi.
+      renderObjectStats("buildGrid", details.max_build);
+      renderBadges(
+        "highlightsGrid",
+        details.boosters,
+        "Boosterlar mavjud emas."
+      );
+      $("buildStatus").textContent =
+        "BUILD MASTER kiritilmagan — MAX BUILD ko‘rsatilmoqda.";
+      $("buildTip").textContent = "Karta maslahati mavjud emas.";
+    }
+  } catch (error) {
+    console.error("Karta tafsilotlari xatosi:", error);
+    $("cardStatus").textContent = "Karta tafsilotlarini yuklab bo‘lmadi.";
+    showUnknown("statsGrid", "Ma’lumotni yuklashda xatolik.");
+    showUnknown("skillsGrid", "Ma’lumotni yuklashda xatolik.");
+    showUnknown("positionsGrid", "Ma’lumotni yuklashda xatolik.");
+    showUnknown("buildGrid", "Ma’lumotni yuklashda xatolik.");
+    showUnknown("highlightsGrid", "Ma’lumotni yuklashda xatolik.");
+  }
+}
+
+async function loadProfile(){
+  if(!playerId){$("loading").classList.add("hidden");$("error").classList.remove("hidden");return;}
+  try{
+    const response=await fetch("/api/players");
+    if(!response.ok) throw new Error("API error");
+    const players=await response.json();
+    const p=players.find(x=>String(x.id)===playerId);
+    if(!p) throw new Error("Player not found");
+
+    $("name").textContent=p.name||"Noma’lum futbolchi";
+    $("rating").textContent=p.rating??"--";
+    $("position").textContent=p.position||"--";
+    $("club").textContent=p.club||"Klub noma’lum";
+    $("nationality").textContent="🌍 "+(p.nationality||"Noma’lum");
+    $("cardType").textContent="🃏 "+(p.card_type||"Standard");
+    $("level").textContent="⭐ Level "+(p.level||1);
+    document.title=(p.name||"Player")+" — eFOOTBALL HUB";
+
+    if(p.image){
+      $("photo").src=p.image;
+      $("photo").onload=()=>{$("photo").classList.remove("hidden");$("noPhoto").style.display="none";};
+      $("photo").onerror=()=>{$("photo").classList.add("hidden");$("noPhoto").style.display="flex";};
+    }
+
+    $("infoGrid").innerHTML=[
+      ["Millat",p.nationality||"—"],
+      ["Klub",p.club||"—"],
+      ["Pozitsiya",p.position||"—"],
+      ["Reyting",p.rating??"—"],
+      ["Daraja",p.level||1],
+      ["O‘yin uslubi",p.playing_style||"—"],
+      ["Karta turi",p.card_type||"Standard"]
+    ].map(([a,b])=>`<div class="stat">${a}<br><strong>${b}</strong></div>`).join("");
+
+    $("statsGrid").innerHTML =
+      '<p class="muted">Batafsil futbolchi statistikasi hali bazaga kiritilmagan.</p>';
+
+    $("buildGrid").innerHTML = "";
+    $("highlightsGrid").innerHTML = "";
+    $("buildTip").textContent = "Hali maslahat kiritilmagan.";
+
+    try {
+      const response = await fetch(`/api/players/${encodeURIComponent(p.id)}/build`);
+      if (!response.ok) throw new Error("Build API xatosi");
+
+      const build = await response.json();
+      const stats = build.stats || {};
+      const entries = Object.entries(stats);
+
+      if (entries.length) {
+        $("buildGrid").innerHTML = entries
+          .map(([label, value]) => addStat(label, value)).join("");
+        $("buildStatus").textContent = "Saqlangan BUILD MASTER statistikasi.";
+      } else {
+        $("buildStatus").textContent = "Hali build statistikasi saqlanmagan.";
+      }
+
+      const highlights = Array.isArray(build.highlights) ? build.highlights : [];
+      for (const item of highlights) {
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = item;
+        $("highlightsGrid").appendChild(badge);
+      }
+
+      if (!highlights.length) {
+        $("highlightsGrid").textContent = "Hali highlights kiritilmagan.";
+      }
+
+      $("buildTip").textContent = build.tip || "Hali maslahat kiritilmagan.";
+    } catch (error) {
+      console.error("BUILD MASTER xatosi:", error);
+      $("buildStatus").textContent = "BUILD MASTER ma’lumotlarini yuklab bo‘lmadi.";
+      $("highlightsGrid").textContent = "Ma’lumotlar hozircha mavjud emas.";
+    }
+    $("skillsGrid").textContent = "Haqiqiy karta ko‘nikmalari kiritilmagan.";
+    $("positionsGrid").textContent = "Haqiqiy pozitsiya reytinglari kiritilmagan.";
+    await loadPlayerCards(p);
+
+    $("loading").classList.add("hidden");
+    $("profile").classList.remove("hidden");
+  }catch(e){
+    console.error(e);
+    $("loading").classList.add("hidden");
+    $("error").classList.remove("hidden");
+  }
+}
+loadProfile();
+</script>
+</body>
+</html>

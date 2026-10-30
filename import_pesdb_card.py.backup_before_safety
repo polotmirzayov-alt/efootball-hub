@@ -1,0 +1,231 @@
+import json
+import os
+import argparse
+import urllib.request
+import urllib.error
+from pathlib import Path
+
+INPUT = Path("player_parsed_v2.json")
+
+POSITIONS = [
+    "GK", "CB", "LB", "RB", "DMF", "CMF", "LMF",
+    "RMF", "AMF", "LWF", "RWF", "SS", "CF"
+]
+
+
+def load_payload():
+    if not INPUT.exists():
+        raise FileNotFoundError("player_parsed_v2.json topilmadi")
+
+    p = json.loads(INPUT.read_text(encoding="utf-8"))
+
+    required = [
+        "name", "nationality", "club", "card_name",
+        "overall_rating", "card_type", "source_player_id"
+    ]
+    missing = [key for key in required if p.get(key) is None]
+    if missing:
+        raise ValueError("Majburiy maydonlar yo'q: " + ", ".join(missing))
+
+    position_index = p.get("position")
+    position = (
+        POSITIONS[position_index]
+        if isinstance(position_index, int)
+        and not isinstance(position_index, bool)
+        and 0 <= position_index < len(POSITIONS)
+        else ""
+    )
+
+    source_player_id = str(p["source_player_id"]).strip()
+    featured_id = p.get("featured_id")
+
+    if not source_player_id or featured_id is None:
+        raise ValueError("PESDB player ID yoki featured ID yo'q")
+
+    rating = p["overall_rating"]
+    if not isinstance(rating, int) or isinstance(rating, bool) or not 0 <= rating <= 112:
+        raise ValueError("OVR qiymati noto'g'ri")
+
+    stats = p.get("stats", {})
+    skills = p.get("skills", [])
+    if not isinstance(stats, dict) or not stats:
+        raise ValueError("Statistika bo'sh yoki noto'g'ri")
+    if not isinstance(skills, list):
+        raise ValueError("Skills ro'yxati noto'g'ri")
+
+    for key, value in stats.items():
+        if not isinstance(key, str) or not isinstance(value, int):
+            raise ValueError("Statistika formati noto'g'ri")
+        if isinstance(value, bool) or not 0 <= value <= 105:
+            raise ValueError("Statistika qiymati 0–105 oralig'ida bo'lishi kerak")
+
+    source_card_id = f"{source_player_id}:{featured_id}"
+
+    card = {
+        "player_name": str(p["name"]).strip(),
+        "nationality": str(p["nationality"]).strip(),
+        "club": str(p["club"]).strip(),
+        "source": "PESDB",
+        "source_card_id": source_card_id,
+        "card_name": str(p["card_name"]).strip(),
+        "rating": rating,
+        "card_type": str(p["card_type"]).strip(),
+        "position": position,
+        "playing_style": str(p.get("attacking_playing_style", "")),
+        "image": str(p.get("image_url", "")),
+        # Sana manbadan tasdiqlanmaguncha bo'sh qoldiriladi.
+        "release_date": ""
+    }
+
+    raw_boosters = p.get("boosters", [])
+    booster_names = []
+    if isinstance(raw_boosters, list):
+        booster_names = [
+            b["name"].strip()
+            for b in raw_boosters
+            if isinstance(b, dict)
+            and isinstance(b.get("name"), str)
+            and b["name"].strip()
+        ]
+
+    physics = {
+        "static_stats": p.get("static_stats", {}),
+        "player_details": p.get("details", {}),
+        "booster_details": raw_boosters,
+        "defensive_playing_style": p.get("defensive_playing_style", ""),
+        "available_positions": p.get("available_positions", [])
+    }
+
+    roles = {
+        "ai_playing_styles": p.get("ai_playing_styles", []),
+        "position_index": position_index
+    }
+
+    details = {
+        "base_ovr": rating,
+        "max_ovr": p.get("max_overall"),
+        "height_cm": p.get("height_cm"),
+        "weight_kg": p.get("weight_kg"),
+        "age": p.get("age"),
+        "stats": stats,
+        "position_ratings": {},
+        "skills": skills,
+        "boosters": booster_names,
+        "max_build": {},
+        "physics": physics,
+        "roles": roles,
+        "source": "PESDB"
+    }
+
+    return card, details
+
+
+def request_json(url, token="", method="GET", payload=None):
+    headers = {"Accept": "application/json"}
+
+    if payload is not None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    else:
+        body = None
+
+    if token:
+        headers["Authorization"] = "Bearer " + token
+
+    req = urllib.request.Request(
+        url, data=body, headers=headers, method=method
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=40) as response:
+            raw = response.read().decode("utf-8")
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as exc:
+        message = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"HTTP {exc.code}: {message[:500]}"
+        ) from exc
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--apply", action="store_true")
+    parser.add_argument(
+        "--url",
+        default=os.environ.get(
+            "EFHUB_API",
+            "http://127.0.0.1:8001"
+        )
+    )
+    args = parser.parse_args()
+
+    card, details = load_payload()
+
+    print("=== IMPORT TEKSHIRUVI ===")
+    print("Futbolchi:", card["player_name"])
+    print("Karta:", card["card_name"])
+    print("OVR:", card["rating"])
+    print("Pozitsiya:", card["position"])
+    print("Manba ID:", card["source_card_id"])
+    print("Statlar:", len(details["stats"]))
+    print("Skills:", len(details["skills"]))
+    print("Boosters:", details["boosters"])
+    print("Sana: manbadan tasdiqlanmagan")
+
+    if not args.apply:
+        print("\nFAQAT KO'RIB CHIQISH: serverga hech narsa yozilmadi.")
+        print("Haqiqiy import uchun --apply kerak bo'ladi.")
+        return
+
+    token = os.environ.get("ADMIN_TOKEN", "")
+    if not token:
+        raise RuntimeError("ADMIN_TOKEN topilmadi. Import bekor qilindi.")
+
+    base = args.url.rstrip("/")
+
+    print("\n1. Karta API ga yuborilmoqda...")
+    result = request_json(
+        base + "/api/import-pesdb-card",
+        token,
+        "POST",
+        card
+    )
+
+    card_info = result.get("card")
+    if not isinstance(card_info, dict) or not card_info.get("id"):
+        raise RuntimeError("API javobida karta ID topilmadi: " + str(result))
+
+    card_id = card_info["id"]
+    duplicate = result.get("duplicate", False)
+
+    print("Card ID:", card_id)
+    print("Oldin mavjud edi:", duplicate)
+
+    if duplicate:
+        print("\n2. Mavjud karta tafsilotlari tekshirilmoqda...")
+        current = request_json(
+            f"{base}/api/cards/{card_id}/details"
+        )
+
+        # Tafsilotlar mavjud bo'lsa, ularni ustidan yozmaymiz.
+        if "details" not in current or current.get("details") is not None:
+            print("Tafsilotlar allaqachon mavjud.")
+            print("Mavjud ma'lumotlar o'zgartirilmadi.")
+            return
+
+        print("Tafsilotlar yo'q. To'ldirish davom etadi.")
+
+    print("\n3. Karta tafsilotlari yuborilmoqda...")
+    detail_result = request_json(
+        f"{base}/api/cards/{card_id}/details",
+        token,
+        "POST",
+        details
+    )
+
+    print("Tafsilotlar API:", detail_result)
+    print("\nMUVAFFAQIYATLI. Card ID:", card_id)
+
+
+if __name__ == "__main__":
+    main()

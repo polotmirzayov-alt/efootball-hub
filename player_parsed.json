@@ -1,0 +1,51 @@
+{
+  "player_url": "https://pesdb.net/efootball/players/phil-foden-52912923459704",
+  "name": "Phil Foden",
+  "overall_rating": 96,
+  "max_overall": 97,
+  "image_url": "https://pesdb.net/social-image.php?type=player&amp;id=52912923459704&amp;source=dream_team",
+  "stats": {
+    "offensive_awareness": 80,
+    "ball_control": 87,
+    "dribbling": 88,
+    "tight_possession": 89,
+    "low_pass": 85,
+    "lofted_pass": 80,
+    "finishing": 83,
+    "heading": 56,
+    "set_piece_taking": 68,
+    "curl": 83,
+    "defensive_awareness": 57,
+    "tackling": 60,
+    "aggression": 64,
+    "defensive_engagement": 64,
+    "gk_awareness": 40,
+    "gk_catching": 40,
+    "gk_parrying": 40,
+    "gk_reflexes": 40,
+    "gk_reach": 40,
+    "speed": 86,
+    "acceleration": 89,
+    "kicking_power": 88,
+    "jumping": 54,
+    "physical_contact": 70,
+    "balance": 89,
+    "stamina": 84
+  },
+  "playing_style": "Hole Player",
+  "skills": [
+    "Double Touch",
+    "Cut Behind & Turn",
+    "Long-range Curler",
+    "Long-range Shooting",
+    "First-time Shot",
+    "One-touch Pass",
+    "Through Passing",
+    "Pinpoint Crossing",
+    "Outside Curler",
+    "Fighting Spirit"
+  ],
+  "boosters": [
+    "Shooting +3"
+  ]
+}

@@ -1,0 +1,26 @@
+import sqlite3
+
+DB_NAME = "efootball.db"
+
+def search_player(name):
+    with sqlite3.connect(DB_NAME) as db:
+        players = db.execute("""
+            SELECT id, name, nationality, club, position, rating
+            FROM players
+            WHERE name LIKE ?
+            ORDER BY rating DESC
+        """, (f"%{name}%",)).fetchall()
+
+    if not players:
+        print("Futbolchi topilmadi.")
+        return
+
+    for p in players:
+        print(
+            f"ID: {p[0]} | {p[1]} | {p[2]} | "
+            f"{p[3]} | {p[4]} | Reyting: {p[5]}"
+        )
+
+if __name__ == "__main__":
+    name = input("Futbolchi ismini kiriting: ")
+    search_player(name)
