@@ -105,3 +105,95 @@ def seed_players():
                     SELECT 1 FROM players WHERE name = %(name)s
                 )
             """, player)
+
+
+def create_auth_profile_tables():
+    with get_connection() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                firebase_uid TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
+                preferred_language TEXT NOT NULL DEFAULT 'uz',
+                first_greeting_done BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                last_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        """)
+        db.execute("""
+            ALTER TABLE user_profiles
+            ADD COLUMN IF NOT EXISTS rules_version INTEGER NOT NULL DEFAULT 0
+        """)
+        db.execute("""
+            ALTER TABLE user_profiles
+            ADD COLUMN IF NOT EXISTS rules_completed_at TIMESTAMPTZ
+        """)
+
+
+def upsert_user_profile(firebase_uid, display_name="", email="", preferred_language="uz"):
+    if not firebase_uid:
+        raise ValueError("Firebase UID bo'sh bo'lmasligi kerak")
+
+    allowed_languages = {
+        "uz", "en", "ru", "pt", "es", "fr", "de", "it",
+        "tr", "ar", "zh", "ja", "ko", "hi", "id"
+    }
+    if preferred_language not in allowed_languages:
+        preferred_language = "uz"
+
+    with get_connection() as db:
+        db.execute("""
+            INSERT INTO user_profiles
+                (firebase_uid, display_name, email, preferred_language, last_login_at)
+            VALUES (%s, %s, %s, %s, NOW())
+            ON CONFLICT (firebase_uid) DO UPDATE SET
+                display_name = EXCLUDED.display_name,
+                email = EXCLUDED.email,
+                preferred_language = EXCLUDED.preferred_language,
+                last_login_at = NOW()
+        """, (firebase_uid, display_name, email, preferred_language))
+
+        return db.execute("""
+            SELECT firebase_uid, display_name, email, preferred_language,
+                   first_greeting_done, rules_version, rules_completed_at
+            FROM user_profiles
+            WHERE firebase_uid = %s
+        """, (firebase_uid,)).fetchone()
+
+
+def get_user_profile(firebase_uid):
+    with get_connection() as db:
+        return db.execute("""
+            SELECT firebase_uid, display_name, email, preferred_language,
+                   first_greeting_done, rules_version, rules_completed_at
+            FROM user_profiles
+            WHERE firebase_uid = %s
+        """, (firebase_uid,)).fetchone()
+
+
+def complete_user_rules(firebase_uid, rules_version):
+    if not firebase_uid:
+        raise ValueError("Firebase UID bo'sh bo'lmasligi kerak")
+
+    with get_connection() as db:
+        result = db.execute("""
+            UPDATE user_profiles
+            SET rules_version = %s,
+                rules_completed_at = NOW()
+            WHERE firebase_uid = %s
+            RETURNING firebase_uid, rules_version, rules_completed_at
+        """, (rules_version, firebase_uid)).fetchone()
+
+        return result
+
+
+def mark_first_greeting_done(firebase_uid):
+    if not firebase_uid:
+        raise ValueError("Firebase UID bo'sh bo'lmasligi kerak")
+    with get_connection() as db:
+        return db.execute("""
+            UPDATE user_profiles
+            SET first_greeting_done = TRUE
+            WHERE firebase_uid = %s
+            RETURNING firebase_uid, first_greeting_done
+        """, (firebase_uid,)).fetchone()

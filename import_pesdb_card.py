@@ -5,7 +5,7 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-INPUT = Path("pesdb_cards_enriched.jsonl")
+INPUT = Path("pesdb_cards_enriched_with_position_ratings.jsonl")
 POSITIONS = [
     "GK", "CB", "LB", "RB", "DMF", "CMF", "LMF",
     "RMF", "AMF", "LWF", "RWF", "SS", "CF"
@@ -151,6 +151,16 @@ def build_payload(data):
         "release_date": ""
     }
 
+    position_ratings = data.get("position_ratings")
+    if not isinstance(position_ratings, dict) or set(position_ratings) != set(POSITIONS):
+        raise ValueError(f"{name}: 13 ta pozitsiya reytingi to‘liq emas")
+    for pos, value in position_ratings.items():
+        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 105:
+            raise ValueError(f"{name}: {pos} reytingi 0–105 oralig‘ida bo‘lishi kerak")
+    primary = str(data["primary_position"]).strip().upper()
+    if position_ratings.get(primary) != rating:
+        raise ValueError(f"{name}: asosiy pozitsiya reytingi OVR bilan mos emas")
+
     physics = {
         "static_stats": data.get("static_stats", {}),
         "player_details": data.get("details", {}),
@@ -174,7 +184,7 @@ def build_payload(data):
         "weight_kg": data.get("weight_kg"),
         "age": data.get("age"),
         "stats": stats,
-        "position_ratings": {},
+        "position_ratings": position_ratings,
         "skills": skills,
         "boosters": booster_names,
         "max_build": {},

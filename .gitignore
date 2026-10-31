@@ -7,3 +7,22 @@ efootball.db
 *.db
 *.sqlite
 *.sqlite3
+
+# Firebase config
+*service-account*.json
+firebase-service-account*.json
+
+# Local backups and data files
+*.backup-auth
+*.backup_before_*
+pesdb_cards_enriched_with_position_ratings.jsonl
+
+# All local backups
+*.backup
+*.backup-*
+*.bak
+
+# Secrets
+.env.*
+!.env.example
+*service_account*.json

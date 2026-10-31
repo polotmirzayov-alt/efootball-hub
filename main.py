@@ -6,6 +6,49 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+
+_firebase_app = None
+
+def _verify_firebase_user():
+    """Verify Firebase ID token from Authorization: Bearer header."""
+    global _firebase_app
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+
+    id_token = auth_header[7:].strip()
+    if not id_token:
+        return None
+
+    service_account_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
+    if not service_account_json:
+        app.logger.error("Firebase service account sozlamasi mavjud emas")
+        return None
+
+    try:
+        import firebase_admin
+        from firebase_admin import credentials, auth
+
+        if _firebase_app is None:
+            try:
+                _firebase_app = firebase_admin.get_app()
+            except ValueError:
+                service_account = json.loads(service_account_json)
+                credential = credentials.Certificate(service_account)
+                _firebase_app = firebase_admin.initialize_app(
+                    credential,
+                    options={"projectId": "efootballa-hub"}
+                )
+
+        decoded = auth.verify_id_token(id_token, app=_firebase_app)
+        return decoded
+
+    except Exception:
+        app.logger.warning("Firebase token tekshiruvi muvaffaqiyatsiz")
+        return None
+
+
 from hub import PLAYERS as HUB_PLAYERS, HTML as HUB_HTML
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,6 +61,7 @@ if USE_POSTGRES:
     from database import postgres_db
 
     postgres_db.create_tables()
+    postgres_db.create_auth_profile_tables()
     postgres_db.seed_players()
     from database.add_content_tables import create_content_tables
     create_content_tables()
@@ -67,8 +111,177 @@ def home():
     return send_from_directory(BASE_DIR, "app.html")
 
 
+@app.route("/firebase-config.js")
+def firebase_config():
+    return send_from_directory(BASE_DIR, "firebase-config.js",
+                               mimetype="text/javascript")
+
+
+
+
+ONBOARDING_RULES_VERSION = 1
+
+
+def _verify_completed_user():
+    """Require Firebase login and completed current rules version."""
+    user = _verify_firebase_user()
+    if not user:
+        return None, (jsonify({"error": "Kirish talab qilinadi"}), 401)
+
+    if not USE_POSTGRES:
+        return None, (jsonify({"error": "PostgreSQL talab qilinadi"}), 503)
+
+    uid = user.get("uid")
+    if not uid:
+        return None, (jsonify({"error": "Firebase UID topilmadi"}), 401)
+
+    try:
+        profile = postgres_db.get_user_profile(uid)
+        if not profile or profile["rules_version"] < ONBOARDING_RULES_VERSION:
+            return None, (jsonify({"error": "Avval onboarding qoidalarini bajaring"}), 403)
+    except Exception:
+        app.logger.exception("Foydalanuvchi qoidalarini tekshirishda xato")
+        return None, (jsonify({"error": "Profilni tekshirib bo‘lmadi"}), 500)
+
+    return user, None
+
+
+@app.route("/api/onboarding/profile", methods=["GET", "POST"])
+def onboarding_profile():
+    user = _verify_firebase_user()
+    if not user:
+        return jsonify({"error": "Kirish talab qilinadi"}), 401
+    if not USE_POSTGRES:
+        return jsonify({"error": "Onboarding uchun PostgreSQL talab qilinadi"}), 503
+
+    uid = user.get("uid")
+    if not uid:
+        return jsonify({"error": "Firebase UID topilmadi"}), 401
+
+    try:
+        if request.method == "POST":
+            data = request.get_json(silent=True) or {}
+            language = data.get("preferred_language", "uz")
+            profile = postgres_db.upsert_user_profile(
+                uid,
+                display_name=user.get("name", ""),
+                email=user.get("email", ""),
+                preferred_language=language
+            )
+        else:
+            profile = postgres_db.get_user_profile(uid)
+            if not profile:
+                profile = postgres_db.upsert_user_profile(
+                    uid,
+                    display_name=user.get("name", ""),
+                    email=user.get("email", ""),
+                    preferred_language="uz"
+                )
+
+        return jsonify({
+            "display_name": profile["display_name"],
+            "preferred_language": profile["preferred_language"],
+            "first_greeting_done": profile["first_greeting_done"],
+            "rules_version": profile["rules_version"],
+            "rules_completed": profile["rules_version"] >= ONBOARDING_RULES_VERSION
+        })
+    except Exception:
+        app.logger.exception("Onboarding profilini yuklashda xato")
+        return jsonify({"error": "Profilni saqlash yoki olish amalga oshmadi"}), 500
+
+
+@app.route("/api/onboarding/greeting-done", methods=["POST"])
+def onboarding_greeting_done():
+    user = _verify_firebase_user()
+    if not user:
+        return jsonify({"error": "Kirish talab qilinadi"}), 401
+    if not USE_POSTGRES:
+        return jsonify({"error": "PostgreSQL talab qilinadi"}), 503
+
+    try:
+        result = postgres_db.mark_first_greeting_done(user["uid"])
+        if not result:
+            return jsonify({"error": "Profil topilmadi"}), 404
+        return jsonify({"success": True})
+    except Exception:
+        app.logger.exception("Salomlashuv holatini saqlashda xato")
+        return jsonify({"error": "Holatni saqlash amalga oshmadi"}), 500
+
+
+
+ONBOARDING_QUIZ = [
+    {"question": "Boshqa foydalanuvchilarga qanday munosabatda bo‘lish kerak?",
+     "options": ["Hurmat bilan", "Haqorat bilan", "Spam yuborib"]},
+    {"question": "Hisob parolini boshqalarga berish mumkinmi?",
+     "options": ["Ha, hammaga", "Yo‘q, maxfiy saqlash kerak", "Izohlarda yozish kerak"]},
+    {"question": "Shubhali havola yoki xabar olsangiz nima qilasiz?",
+     "options": ["Darhol bosaman", "Boshqalarga tarqataman", "Ochmayman va xabar beraman"]},
+    {"question": "Boshqa foydalanuvchining rasmini ruxsatsiz tarqatish mumkinmi?",
+     "options": ["Ha", "Yo‘q, uning roziligi kerak", "Faqat guruhda mumkin"]},
+    {"question": "Qoidabuzarlik yoki haqoratga duch kelsangiz nima qilasiz?",
+     "options": ["Javoban haqorat qilaman", "Dalil bilan shikoyat qilaman", "Spam yuboraman"]}
+]
+
+_ONBOARDING_ANSWERS = [0, 1, 2, 1, 1]
+
+
+@app.route("/api/onboarding/quiz", methods=["GET", "POST"])
+def onboarding_quiz():
+    user = _verify_firebase_user()
+    if not user:
+        return jsonify({"error": "Kirish talab qilinadi"}), 401
+    if not USE_POSTGRES:
+        return jsonify({"error": "PostgreSQL talab qilinadi"}), 503
+
+    uid = user.get("uid")
+    if not uid:
+        return jsonify({"error": "Firebase UID topilmadi"}), 401
+
+    try:
+        profile = postgres_db.get_user_profile(uid)
+        if not profile:
+            profile = postgres_db.upsert_user_profile(
+                uid,
+                display_name=user.get("name", ""),
+                email=user.get("email", "")
+            )
+
+        if profile["rules_version"] >= ONBOARDING_RULES_VERSION:
+            return jsonify({"success": True, "already_completed": True})
+
+        if request.method == "GET":
+            return jsonify({
+                "rules_version": ONBOARDING_RULES_VERSION,
+                "questions": ONBOARDING_QUIZ
+            })
+
+        data = request.get_json(silent=True) or {}
+        answers = data.get("answers")
+
+        if not isinstance(answers, list) or len(answers) != 5:
+            return jsonify({"error": "5 ta javob yuborilishi kerak"}), 400
+
+        if any(type(a) is not int for a in answers):
+            return jsonify({"error": "Javob formati noto‘g‘ri"}), 400
+
+        if answers != _ONBOARDING_ANSWERS:
+            return jsonify({"error": "Ba’zi javoblar noto‘g‘ri. Qayta urinib ko‘ring."}), 400
+
+        result = postgres_db.complete_user_rules(uid, ONBOARDING_RULES_VERSION)
+        if not result:
+            return jsonify({"error": "Profil topilmadi"}), 404
+
+        return jsonify({"success": True, "rules_completed": True})
+
+    except Exception:
+        app.logger.exception("Onboarding testini tekshirishda xato")
+        return jsonify({"error": "Testni tekshirish amalga oshmadi"}), 500
+
 @app.route("/hub", methods=["GET"])
 def hub_home():
+    user, auth_error = _verify_completed_user()
+    if auth_error:
+        return auth_error
     selected = request.args.get("player", "ronaldo_bigtime")
     if selected not in HUB_PLAYERS:
         selected = "ronaldo_bigtime"
@@ -105,6 +318,9 @@ def hub_home():
 
 @app.route("/player")
 def player_profile():
+    user, auth_error = _verify_completed_user()
+    if auth_error:
+        return auth_error
     return send_from_directory(
         os.path.join(BASE_DIR, "screens"),
         "player.html"
@@ -121,6 +337,10 @@ def serve_assets(filename):
 
 @app.route("/api/players")
 def players():
+    user, auth_error = _verify_completed_user()
+    if auth_error:
+        return auth_error
+
     if USE_POSTGRES:
         with postgres_db.get_connection() as db:
             rows = db.execute("""
@@ -309,6 +529,10 @@ def player_build(player_id):
             app.logger.exception("BUILD MASTER ma'lumotlarini saqlashda xato")
             return jsonify({"error": "Ma'lumotlarni saqlab bo'lmadi"}), 500
 
+    user, error = _verify_completed_user()
+    if error:
+        return error
+
     try:
         if USE_POSTGRES:
             with postgres_db.get_connection() as db:
@@ -354,6 +578,10 @@ def _card_json(value, default):
 
 @app.route("/api/players/<int:player_id>/cards", methods=["GET", "POST"])
 def player_cards_api(player_id):
+    if request.method == "GET":
+        user, error = _verify_completed_user()
+        if error:
+            return error
     if request.method == "POST" and not _admin_authorized():
         return jsonify({"error": "Ruxsat berilmadi"}), 401
 
@@ -621,6 +849,10 @@ def import_pesdb_card():
 
 @app.route("/api/cards/<int:card_id>/details", methods=["GET", "POST"])
 def card_details_api(card_id):
+    if request.method == "GET":
+        user, error = _verify_completed_user()
+        if error:
+            return error
     if request.method == "POST" and not _admin_authorized():
         return jsonify({"error": "Ruxsat berilmadi"}), 401
 
@@ -1283,6 +1515,10 @@ def _admin_authorized():
 
 @app.route("/api/cards/<int:card_id>/build", methods=["GET", "POST"])
 def card_build_api(card_id):
+    if request.method == "GET":
+        user, error = _verify_completed_user()
+        if error:
+            return error
     if request.method == "POST" and not _admin_authorized():
         return jsonify({"error": "Ruxsat berilmadi"}), 401
 
@@ -1673,6 +1909,9 @@ def admin_stats():
 
 @app.route("/hub/cards", methods=["GET"])
 def hub_cards():
+    user, auth_error = _verify_completed_user()
+    if auth_error:
+        return auth_error
     query = """
         SELECT
             pc.id AS card_id,

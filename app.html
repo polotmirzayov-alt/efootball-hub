@@ -44,6 +44,25 @@ footer{text-align:center;color:#718078;padding:25px}
     height: 100%;
     object-fit: contain;
 }
+
+body:not(.authenticated) main,
+body:not(.authenticated) footer { display:none !important; }
+#authScreen { max-width:480px; margin:35px auto; padding:22px;
+  background:#111923; border:1px solid #42ff9b; border-radius:16px; }
+#authScreen h2 { color:#42ff9b; margin-top:0; }
+.authBtn { width:100%; padding:14px; margin:8px 0; border:0;
+  border-radius:10px; font-size:16px; font-weight:bold; cursor:pointer; }
+#googleLogin { background:#fff; color:#222; }
+#appleLogin { background:#000; color:#fff; border:1px solid #777; }
+#authStatus { color:#42ff9b; line-height:1.5; overflow-wrap:anywhere; }
+#onboardingScreen { display:none; max-width:650px; margin:25px auto;
+  padding:22px; background:#111923; border:1px solid #42ff9b; border-radius:16px; }
+#onboardingScreen h2 { color:#42ff9b; }
+#onboardingScreen button { padding:12px 16px; margin:8px 5px 8px 0;
+  border:0; border-radius:9px; cursor:pointer; font-weight:bold; }
+#quizArea label { display:block; padding:12px; margin:8px 0;
+  background:#17251f; border-radius:9px; }
+#onboardingStatus { color:#42ff9b; }
 </style>
 </head>
 <body>
@@ -70,6 +89,33 @@ footer{text-align:center;color:#718078;padding:25px}
 </div>
 <p id="subtitle">Futbolchilar dunyosi — barchasi bir joyda!</p>
 </header>
+<section id="authScreen">
+  <h2>eFOOTBALL HUB</h2>
+  <p>Davom etish uchun hisobingizga kiring.</p>
+  <button class="authBtn" id="googleLogin" type="button">Google orqali kirish</button>
+  <button class="authBtn" id="appleLogin" type="button">Apple orqali kirish</button>
+  <p id="authStatus" role="status" aria-live="polite">Kirish kutilmoqda...</p>
+</section>
+<section id="onboardingScreen">
+  <h2 id="welcomeTitle">Xush kelibsiz!</h2>
+  <div id="rulesArea">
+    <h3>📜 HUB qoidalari</h3>
+    <p id="rulesText">
+      Boshqa foydalanuvchilarni hurmat qiling. Haqorat, tahdid va spam yubormang.
+      Hisob ma’lumotlarini maxfiy saqlang. Shubhali havolalarni ochmang.
+      Boshqalarning rasmi yoki shaxsiy ma’lumotlarini ruxsatsiz tarqatmang.
+      Qoidabuzarlikni dalillar bilan xabar qiling.
+    </p>
+    <button id="readRules" type="button">🔊 Qoidalarni eshitish</button>
+    <button id="acceptRules" type="button">Qoidalarni qabul qilaman</button>
+  </div>
+  <div id="quizArea" hidden>
+    <h3>🧠 5 savolli sinov</h3>
+    <div id="quizQuestions"></div>
+    <button id="submitQuiz" type="button">Javoblarni yuborish</button>
+  </div>
+  <p id="onboardingStatus" role="status" aria-live="polite"></p>
+</section>
 
 <main>
 <h2 id="heading">⚽ Futbolchilar</h2>
@@ -257,7 +303,11 @@ search.addEventListener("input", filterPlayers);
 
 async function loadPlayersFromDatabase() {
   try {
-    const response = await fetch("/api/players");
+    const token = window.efootballUserToken;
+      if (!token) throw new Error("Avval hisobga kiring.");
+      const response = await fetch("/api/players", {
+        headers: { Authorization: "Bearer " + token }
+      });
     if (!response.ok) throw new Error("API xatosi: " + response.status);
     const players = await response.json();
     const container = document.getElementById("players");
@@ -1112,8 +1162,200 @@ document.getElementById("adminAddForm").addEventListener("submit", async event =
 });
 
 
-changeLanguage();
-loadPlayersFromDatabase();
 </script>
-</body>
+
+<script type="module">
+import { auth, googleProvider, appleProvider } from "./firebase-config.js";
+import { signInWithPopup, onAuthStateChanged } from
+  "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+const statusBox = document.getElementById("authStatus");
+const authScreen = document.getElementById("authScreen");
+
+document.getElementById("googleLogin").addEventListener("click", async () => {
+  statusBox.textContent = "Google hisobiga ulanmoqda...";
+  try { await signInWithPopup(auth, googleProvider); }
+  catch (e) { statusBox.textContent = "Kirish amalga oshmadi: " + e.message; }
+});
+
+document.getElementById("appleLogin").addEventListener("click", async () => {
+  statusBox.textContent = "Apple hisobiga ulanmoqda...";
+  try { await signInWithPopup(auth, appleProvider); }
+  catch (e) { statusBox.textContent = "Kirish amalga oshmadi: " + e.message; }
+});
+
+
+async function startOnboarding(user, token, profile) {
+  const screen = document.getElementById("onboardingScreen");
+  const status = document.getElementById("onboardingStatus");
+  const rulesArea = document.getElementById("rulesArea");
+  const quizArea = document.getElementById("quizArea");
+  const lang = document.getElementById("language").value || "uz";
+  screen.style.display = "block";
+  authScreen.hidden = true;
+
+  async function api(path, method = "GET", body = null) {
+    const response = await fetch(path, {
+      method,
+      headers: {
+        Authorization: "Bearer " + token,
+        ...(body ? {"Content-Type": "application/json"} : {})
+      },
+      ...(body ? {body: JSON.stringify(body)} : {})
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Server xatosi");
+    return data;
+  }
+
+  await api("/api/onboarding/profile", "POST", {preferred_language: lang});
+
+  const greeting = {
+    uz: "Assalomu alaykum, " + (profile.display_name || user.displayName || "do‘st") + "! Butun dunyoning eng kuchli va aqlli eFootball HUB’iga xush kelibsiz!",
+    en: "Hello, " + (profile.display_name || user.displayName || "friend") + "! Welcome to the eFootball HUB!",
+    ru: "Здравствуйте, " + (profile.display_name || user.displayName || "друг") + "! Добро пожаловать в eFootball HUB!"
+  }[lang] || ("Welcome to eFootball HUB, " + (profile.display_name || user.displayName || "friend") + "!");
+
+  document.getElementById("welcomeTitle").textContent = greeting;
+  if (!profile.first_greeting_done) {
+    status.textContent = "Salomlashuv ijro etilmoqda...";
+    if (!("speechSynthesis" in window)) {
+      status.textContent = "Ovozli o‘qish bu brauzerda mavjud emas. Davom etish uchun sahifani yangilang yoki boshqa brauzerdan foydalaning.";
+      return;
+    }
+    await new Promise(resolve => {
+      const utterance = new SpeechSynthesisUtterance(greeting);
+      utterance.lang = lang === "uz" ? "uz-UZ" : lang === "ru" ? "ru-RU" : "en-US";
+      utterance.onend = async () => {
+        try {
+          await api("/api/onboarding/greeting-done", "POST", {});
+          status.textContent = "";
+          resolve();
+        } catch (e) {
+          status.textContent = "Salomlashuv holatini saqlashda xato: " + e.message;
+          resolve();
+        }
+      };
+      utterance.onerror = () => {
+        status.textContent = "Ovozli salomlashuv bajarilmadi. Sahifani yangilab qayta urinib ko‘ring.";
+        resolve();
+      };
+      speechSynthesis.speak(utterance);
+    });
+  }
+
+  document.getElementById("readRules").onclick = () => {
+    const text = document.getElementById("rulesText").textContent;
+    if ("speechSynthesis" in window) {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang === "uz" ? "uz-UZ" : lang === "ru" ? "ru-RU" : "en-US";
+      speechSynthesis.speak(u);
+    } else status.textContent = "Ovozli o‘qish mavjud emas.";
+  };
+
+  document.getElementById("acceptRules").onclick = async () => {
+    try {
+      const data = await api("/api/onboarding/quiz");
+      const host = document.getElementById("quizQuestions");
+      host.innerHTML = "";
+      data.questions.forEach((q, i) => {
+        const box = document.createElement("fieldset");
+        const title = document.createElement("legend");
+        title.textContent = (i + 1) + ". " + q.question;
+        box.appendChild(title);
+        q.options.forEach((option, j) => {
+          const label = document.createElement("label");
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "quiz" + i;
+          input.value = j;
+          input.required = true;
+          label.append(input, document.createTextNode(" " + option));
+          box.appendChild(label);
+        });
+        const speak = document.createElement("button");
+        speak.type = "button";
+        speak.textContent = "🔊 Savolni eshitish";
+        speak.onclick = () => {
+          if ("speechSynthesis" in window) {
+            const u = new SpeechSynthesisUtterance(q.question);
+            u.lang = lang === "uz" ? "uz-UZ" : lang === "ru" ? "ru-RU" : "en-US";
+            speechSynthesis.speak(u);
+          }
+        };
+        box.appendChild(speak);
+        host.appendChild(box);
+      });
+      rulesArea.hidden = true;
+      quizArea.hidden = false;
+      status.textContent = "Barcha 5 savolga javob bering.";
+    } catch (e) {
+      status.textContent = "Testni yuklashda xato: " + e.message;
+    }
+  };
+
+  document.getElementById("submitQuiz").onclick = async () => {
+    const answers = [];
+    for (let i = 0; i < 5; i++) {
+      const selected = document.querySelector('input[name="quiz' + i + '"]:checked');
+      if (!selected) {
+        status.textContent = "Iltimos, barcha 5 savolga javob bering.";
+        return;
+      }
+      answers.push(Number(selected.value));
+    }
+    try {
+      await api("/api/onboarding/quiz", "POST", {answers});
+      screen.style.display = "none";
+      document.body.classList.add("authenticated");
+      window.efootballUserToken = token;
+      status.textContent = "";
+      await loadPlayersFromDatabase();
+    } catch (e) {
+      if (e.message.includes("Ba’zi javoblar noto‘g‘ri")) {
+        document.getElementById("quizQuestions").innerHTML = "";
+        quizArea.hidden = true;
+        rulesArea.hidden = false;
+        status.textContent =
+          "❌ Afsuski, ayrim javoblaringiz noto‘g‘ri. Iltimos, eFootball HUB qoidalarini yana bir bor diqqat bilan o‘qing. Qoidalarni tushunib olgach, 5 ta savolga yana bir marta javob bering. 🔄";
+      } else {
+        status.textContent = e.message;
+      }
+    }
+  };
+}
+
+onAuthStateChanged(auth, async user => {
+  document.body.classList.remove("authenticated");
+  if (!user) {
+    authScreen.hidden = false;
+    statusBox.textContent = "Google yoki Apple orqali kiring.";
+    return;
+  }
+
+  try {
+    const token = await user.getIdToken();
+    const response = await fetch("/api/onboarding/profile", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!response.ok) throw new Error("Profilni tekshirib bo‘lmadi: " + response.status);
+    const profile = await response.json();
+
+    if (profile.rules_completed) {
+      authScreen.hidden = true;
+      document.body.classList.add("authenticated");
+      window.efootballUserToken = token;
+      statusBox.textContent = "";
+      window.dispatchEvent(new Event("efootball-auth-ready"));
+      await loadPlayersFromDatabase();
+    } else {
+      await startOnboarding(user, token, profile);
+    }
+  } catch (e) {
+    statusBox.textContent = "Server bilan bog‘lanishda xato: " + e.message;
+  }
+});
+</script>
+\n</body>
 </html>
