@@ -44,8 +44,8 @@ def _verify_firebase_user():
         decoded = auth.verify_id_token(id_token, app=_firebase_app)
         return decoded
 
-    except Exception:
-        app.logger.warning("Firebase token tekshiruvi muvaffaqiyatsiz")
+    except Exception as e:
+        app.logger.error("Firebase token tekshiruvi xato turi: %s", type(e).__name__)
         return None
 
 
