@@ -1506,13 +1506,13 @@ const authScreen = document.getElementById("authScreen");
 document.getElementById("googleLogin").addEventListener("click", async () => {
   statusBox.textContent = "Google hisobiga ulanmoqda...";
   try { await signInWithPopup(auth, googleProvider); }
-  catch (e) { statusBox.textContent = "Kirish amalga oshmadi: " + e.message; }
+  catch (e) { console.error("Firebase login xatosi:", e); statusBox.textContent = "Xato: " + (e.code || "no-code") + " — " + e.message; }
 });
 
 document.getElementById("appleLogin").addEventListener("click", async () => {
   statusBox.textContent = "Apple hisobiga ulanmoqda...";
   try { await signInWithPopup(auth, appleProvider); }
-  catch (e) { statusBox.textContent = "Kirish amalga oshmadi: " + e.message; }
+  catch (e) { console.error("Firebase login xatosi:", e); statusBox.textContent = "Xato: " + (e.code || "no-code") + " — " + e.message; }
 });
 
 
