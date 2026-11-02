@@ -63,12 +63,327 @@ body:not(.authenticated) footer { display:none !important; }
 #quizArea label { display:block; padding:12px; margin:8px 0;
   background:#17251f; border-radius:9px; }
 #onboardingStatus { color:#42ff9b; }
+
+/* eFHUB NEON CYBER HEADER */
+body:not(.authenticated) #efhubHeader {
+  display: none !important;
+}
+#efhubHeader {
+  position: relative;
+  z-index: 20;
+  background: #080b12;
+  color: #f4f7ff;
+  font-family: Arial, sans-serif;
+}
+#efhubHeader .ef-header {
+  padding: 14px 12px 0;
+  background: linear-gradient(135deg, #101a30, #090d18 65%, #101e25);
+  border-bottom: 1px solid #00f5ff;
+  box-shadow: 0 4px 24px rgba(0, 245, 255, .12);
+}
+#efhubHeader .ef-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 1100px;
+  margin: auto;
+}
+#efhubHeader .ef-logo {
+  margin-left: auto;
+  color: #00f5ff;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-shadow: 0 0 12px rgba(0, 245, 255, .5);
+}
+#efhubHeader .ef-icon {
+  min-width: 42px;
+  min-height: 42px;
+  border: 1px solid #25445b;
+  border-radius: 10px;
+  background: #111a2a;
+  color: #00f5ff;
+  font-size: 22px;
+  cursor: pointer;
+}
+#efhubHeader .ef-icon:focus-visible,
+#efhubHeader button:focus-visible,
+#efhubHeader select:focus-visible {
+  outline: 2px solid #00f5ff;
+  outline-offset: 3px;
+}
+#efhubHeader .ef-nav {
+  display: flex;
+  gap: 6px;
+  max-width: 1100px;
+  margin: 12px auto 0;
+  overflow-x: auto;
+}
+#efhubHeader .ef-nav button {
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #aebbd0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .8px;
+  cursor: pointer;
+}
+#efhubHeader .ef-nav button.active {
+  color: #00f5ff;
+  border-bottom-color: #00f5ff;
+  text-shadow: 0 0 8px rgba(0, 245, 255, .45);
+}
+#efhubHeader button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+#efhubHeader .ef-search {
+  display: flex;
+  gap: 8px;
+  max-width: 1100px;
+  margin: 12px auto;
+  padding-bottom: 12px;
+}
+#efhubHeader .ef-search[hidden],
+#efhubHeader .ef-overlay[hidden] {
+  display: none !important;
+}
+#efhubHeader .ef-search input,
+#efhubHeader #language {
+  width: 100%;
+  min-width: 0;
+  background: #0c1422;
+  color: #fff;
+  border: 1px solid #245064;
+  border-radius: 10px;
+}
+#efhubHeader .ef-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, .7);
+}
+#efhubHeader .ef-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 41;
+  width: min(310px, 86vw);
+  padding: 20px;
+  overflow-y: auto;
+  background: #0c1321;
+  border-right: 1px solid #00f5ff;
+  box-shadow: 8px 0 30px rgba(0, 245, 255, .12);
+  transform: translateX(-105%);
+  visibility: hidden;
+  transition: transform .22s ease, visibility .22s ease;
+}
+#efhubHeader .ef-drawer.open {
+  transform: translateX(0);
+  visibility: visible;
+}
+#efhubHeader .ef-drawer h2 {
+  color: #00f5ff;
+}
+#efhubHeader .ef-drawer p {
+  color: #b8c7da;
+  line-height: 1.5;
+}
+#efhubHeader .ef-drawer label {
+  display: block;
+  margin: 20px 0 8px;
+  color: #00f5ff;
+}
+#efhubHeader .ef-drawer > button:not(.ef-icon) {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #25445b;
+  border-radius: 10px;
+  background: #111a2a;
+  color: #eaf4ff;
+}
+@media (max-width: 480px) {
+  #efhubHeader .ef-logo { font-size: 20px; }
+  #efhubHeader .ef-top { gap: 6px; }
+  #efhubHeader .ef-icon { min-width: 38px; min-height: 40px; }
+  #efhubHeader .ef-nav button { padding: 12px 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #efhubHeader .ef-drawer { transition: none; }
+}
+
+
+/* EFHUB_NEON_MERGE_V1 */
+#efhubHeader {
+  --ef-cyan:#00e5ff;
+  --ef-pink:#ff2d9b;
+  --ef-purple:#7c4dff;
+  color:#e9e7ff;
+}
+#efhubHeader .ef-header {
+  position:sticky;
+  top:0;
+  z-index:30;
+  background:rgba(10,8,25,.94);
+  border-bottom:1px solid rgba(0,229,255,.35);
+  box-shadow:0 5px 24px rgba(0,229,255,.12);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+#efhubHeader .ef-logo {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  background:linear-gradient(90deg,var(--ef-cyan),var(--ef-pink));
+  color:transparent;
+  background-clip:text;
+  -webkit-background-clip:text;
+}
+#efhubHeader .ef-icon {
+  border-color:rgba(0,229,255,.25);
+  border-radius:14px;
+  background:rgba(255,255,255,.07);
+  transition:transform .18s,border-color .18s;
+}
+#efhubHeader .ef-icon:active { transform:scale(.93); }
+#efhubHeader .ef-nav button.active {
+  color:var(--ef-cyan);
+  border-bottom-color:var(--ef-pink);
+  text-shadow:0 0 9px rgba(0,229,255,.45);
+}
+#efhubHeader .ef-drawer {
+  background:#0d0b20;
+  border-right-color:rgba(0,229,255,.4);
+}
+#efhubHeader .ef-drawer h2,
+#efhubHeader .ef-drawer label { color:var(--ef-cyan); }
+#efhubHeader .ef-search input,
+#efhubHeader #language {
+  border-color:rgba(0,229,255,.3);
+  border-radius:13px;
+}
+html[dir="rtl"] #efhubHeader .ef-drawer {
+  left:auto;
+  right:0;
+  border-right:0;
+  border-left:1px solid rgba(0,229,255,.4);
+}
+@media(prefers-reduced-motion:reduce) {
+  #efhubHeader * { transition:none!important; }
+}
+
+
+/* EFHUB_NEON_STATS_V1 */
+main .stats {
+  gap: 12px;
+  margin: 18px 0;
+}
+main .stat {
+  position: relative;
+  overflow: hidden;
+  padding: 19px 12px;
+  border: 1px solid rgba(0,229,255,.38);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #15142b, #0b1220);
+  box-shadow: 0 0 16px rgba(0,229,255,.08);
+}
+main .stat b {
+  color: #00e5ff;
+  font-size: 27px;
+  text-shadow: 0 0 12px rgba(0,229,255,.45);
+}
+main .stat span {
+  display: block;
+  margin-top: 6px;
+  color: #c7c5e8;
+  font-size: 12px;
+}
+@media(max-width:380px) {
+  main .stat { padding: 14px 7px; }
+  main .stat b { font-size: 23px; }
+}
+
+
+/* EFHUB_NEON_PLAYER_CARDS_V1 */
+main .players .card {
+  background: linear-gradient(145deg, #17132d, #0b1220 70%);
+  border: 1px solid rgba(0,229,255,.55);
+  border-radius: 18px;
+  box-shadow: 0 0 18px rgba(0,229,255,.09);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+main .players .card:active {
+  transform: scale(.985);
+}
+main .players .ovr {
+  color: #00e5ff;
+  text-shadow: 0 0 14px rgba(0,229,255,.5);
+}
+main .players .name {
+  color: #f2eaff;
+}
+main .players .badge {
+  background: linear-gradient(90deg, #30205e, #173d58);
+  border: 1px solid rgba(124,77,255,.5);
+  color: #e9e7ff;
+}
+@media(prefers-reduced-motion:reduce) {
+  main .players .card { transition:none; }
+}
+
+
+/* EFHUB_NEON_MOBILE_V1 */
+@media (max-width: 480px) {
+  main { padding: 12px; }
+  main .players {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  main .players .card { min-width: 0; padding: 12px; }
+  main .players .name { font-size: 17px; overflow-wrap: anywhere; }
+  main .players .info { font-size: 12px; }
+}
+@media (max-width: 340px) {
+  main .players { grid-template-columns: minmax(0, 1fr); }
+  main .stats { gap: 7px; }
+  main .stat { padding: 12px 5px; }
+}
+
 </style>
 </head>
 <body>
-<header>
-<div class="top">
-<div class="logo">eFOOTBALL <span>HUB</span></div>
+<div id="efhubHeader">
+<header class="ef-header">
+  <div class="ef-top">
+    <button class="ef-icon" id="efMenu" type="button" aria-label="Menyu">☰</button>
+    <button class="ef-icon" id="efSearchBtn" type="button" aria-label="Qidiruv">⌕</button>
+    <button class="ef-icon" id="efNotifications" type="button" aria-label="Xabarlar">♧</button>
+    <div class="ef-logo">⚽ eFHUB</div>
+  </div>
+  <nav class="ef-nav" id="efNav" aria-label="Asosiy menyu">
+    <button class="active" type="button" data-page="home">HOME</button>
+    <button type="button" data-page="players">PLAYERS</button>
+    <button type="button" data-page="feed" disabled>FEED</button>
+    <button type="button" data-page="community" disabled>COMMUNITY</button>
+    <button type="button" data-page="watch" disabled>WATCH</button>
+  </nav>
+  <div class="ef-search" id="efSearch" hidden>
+    <input id="efSearchInput" type="search" placeholder="Futbolchi qidirish..." aria-label="Futbolchi qidirish">
+    <button class="ef-icon" id="efSearchClose" type="button" aria-label="Yopish">×</button>
+  </div>
+</header>
+<div class="ef-overlay" id="efOverlay" hidden></div>
+<aside class="ef-drawer" id="efDrawer" aria-label="Yon menyu" aria-hidden="true">
+  <button id="efDrawerClose" class="ef-icon" type="button">×</button>
+  <h2>eFHUB</h2>
+  <p id="subtitle">Futbolchilar dunyosi — barchasi bir joyda!</p>
+  <label for="language">Til</label>
+  <div id="efLanguageSlot">
 <select id="language" aria-label="Language">
 <option value="uz">🇺🇿 O‘zbekcha</option>
 <option value="en">🇬🇧 English</option>
@@ -87,8 +402,10 @@ body:not(.authenticated) footer { display:none !important; }
 <option value="id">🇮🇩 Bahasa Indonesia</option>
 </select>
 </div>
-<p id="subtitle">Futbolchilar dunyosi — barchasi bir joyda!</p>
-</header>
+  <button type="button" disabled>Profil — tez orada</button>
+  <button type="button" disabled>Sozlamalar — tez orada</button>
+</aside>
+</div>
 <section id="authScreen">
   <h2>eFOOTBALL HUB</h2>
   <p>Davom etish uchun hisobingizga kiring.</p>
@@ -408,9 +725,23 @@ function adminHeaders(json = false) {
 }
 
 async function adminRequest(url, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const isCardRead = method === "GET" &&
+    (/^\/api\/players\/\d+\/cards$/.test(url) ||
+     /^\/api\/cards\/\d+\/details$/.test(url));
+  const firebaseUser = isCardRead ? auth.currentUser : null;
+  const firebaseToken = firebaseUser ? await firebaseUser.getIdToken() : "";
+  const headers = {
+    ...adminHeaders(Boolean(options.body)),
+    ...(options.headers || {})
+  };
+  if (isCardRead && firebaseToken) {
+    headers.Authorization = "Bearer " + firebaseToken;
+  }
   const response = await fetch(url, {
     ...options,
-    headers: {...adminHeaders(Boolean(options.body)), ...(options.headers || {})}
+    credentials: "same-origin",
+    headers
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || "So‘rov bajarilmadi: " + response.status);
@@ -1166,7 +1497,7 @@ document.getElementById("adminAddForm").addEventListener("submit", async event =
 
 <script type="module">
 import { auth, googleProvider, appleProvider } from "./firebase-config.js";
-import { signInWithPopup, onAuthStateChanged } from
+import { signInWithPopup, onIdTokenChanged } from
   "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
 const statusBox = document.getElementById("authStatus");
@@ -1184,6 +1515,23 @@ document.getElementById("appleLogin").addEventListener("click", async () => {
   catch (e) { statusBox.textContent = "Kirish amalga oshmadi: " + e.message; }
 });
 
+
+
+async function establishServerSession(token) {
+  const response = await fetch("/api/auth/session", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      Authorization: "Bearer " + token
+    }
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Server sessiyasini yaratib bo‘lmadi");
+  }
+  return data;
+}
 
 async function startOnboarding(user, token, profile) {
   const screen = document.getElementById("onboardingScreen");
@@ -1219,28 +1567,42 @@ async function startOnboarding(user, token, profile) {
   document.getElementById("welcomeTitle").textContent = greeting;
   if (!profile.first_greeting_done) {
     status.textContent = "Salomlashuv ijro etilmoqda...";
-    if (!("speechSynthesis" in window)) {
-      status.textContent = "Ovozli o‘qish bu brauzerda mavjud emas. Davom etish uchun sahifani yangilang yoki boshqa brauzerdan foydalaning.";
-      return;
-    }
+
     await new Promise(resolve => {
-      const utterance = new SpeechSynthesisUtterance(greeting);
-      utterance.lang = lang === "uz" ? "uz-UZ" : lang === "ru" ? "ru-RU" : "en-US";
-      utterance.onend = async () => {
+      let finished = false;
+
+      const finishGreeting = async () => {
+        if (finished) return;
+        finished = true;
+
         try {
           await api("/api/onboarding/greeting-done", "POST", {});
           status.textContent = "";
-          resolve();
         } catch (e) {
           status.textContent = "Salomlashuv holatini saqlashda xato: " + e.message;
+        } finally {
           resolve();
         }
       };
-      utterance.onerror = () => {
-        status.textContent = "Ovozli salomlashuv bajarilmadi. Sahifani yangilab qayta urinib ko‘ring.";
-        resolve();
-      };
-      speechSynthesis.speak(utterance);
+
+      if (!("speechSynthesis" in window) ||
+          typeof SpeechSynthesisUtterance === "undefined") {
+        status.textContent = "Ovoz tizimi mavjud emas. Davom etishingiz mumkin.";
+        finishGreeting();
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(greeting);
+      utterance.lang = lang === "uz" ? "uz-UZ" : lang === "ru" ? "ru-RU" : "en-US";
+      utterance.onend = finishGreeting;
+      utterance.onerror = finishGreeting;
+
+      try {
+        speechSynthesis.cancel();
+        speechSynthesis.speak(utterance);
+      } catch (e) {
+        finishGreeting();
+      }
     });
   }
 
@@ -1307,6 +1669,8 @@ async function startOnboarding(user, token, profile) {
     }
     try {
       await api("/api/onboarding/quiz", "POST", {answers});
+      await establishServerSession(token);
+      initializedUid = user.uid;
       screen.style.display = "none";
       document.body.classList.add("authenticated");
       window.efootballUserToken = token;
@@ -1326,36 +1690,172 @@ async function startOnboarding(user, token, profile) {
   };
 }
 
-onAuthStateChanged(auth, async user => {
-  document.body.classList.remove("authenticated");
-  if (!user) {
-    authScreen.hidden = false;
-    statusBox.textContent = "Google yoki Apple orqali kiring.";
-    return;
-  }
+let initializedUid = null;
+let pendingAuthUser = null;
+let hasPendingAuthEvent = false;
+let authQueueRunning = false;
 
-  try {
-    const token = await user.getIdToken();
-    const response = await fetch("/api/onboarding/profile", {
-      headers: { Authorization: "Bearer " + token }
-    });
-    if (!response.ok) throw new Error("Profilni tekshirib bo‘lmadi: " + response.status);
-    const profile = await response.json();
+onIdTokenChanged(auth, user => {
+  pendingAuthUser = user;
+  hasPendingAuthEvent = true;
 
-    if (profile.rules_completed) {
-      authScreen.hidden = true;
-      document.body.classList.add("authenticated");
-      window.efootballUserToken = token;
-      statusBox.textContent = "";
-      window.dispatchEvent(new Event("efootball-auth-ready"));
-      await loadPlayersFromDatabase();
-    } else {
-      await startOnboarding(user, token, profile);
+  if (authQueueRunning) return;
+  authQueueRunning = true;
+
+  (async () => {
+    try {
+      while (hasPendingAuthEvent) {
+        const currentUser = pendingAuthUser;
+        hasPendingAuthEvent = false;
+
+        try {
+          if (!currentUser) {
+            initializedUid = null;
+            window.efootballUserToken = null;
+            document.body.classList.remove("authenticated");
+            authScreen.hidden = false;
+            statusBox.textContent = "Google yoki Apple orqali kiring.";
+            continue;
+          }
+
+          const token = await currentUser.getIdToken();
+
+          if (initializedUid === currentUser.uid) {
+            await establishServerSession(token);
+            window.efootballUserToken = token;
+            statusBox.textContent = "";
+            continue;
+          }
+
+          initializedUid = null;
+          document.body.classList.remove("authenticated");
+
+          const response = await fetch("/api/onboarding/profile", {
+            headers: { Authorization: "Bearer " + token }
+          });
+
+          if (!response.ok) {
+            throw new Error("Profilni tekshirib bo‘lmadi: " + response.status);
+          }
+
+          const profile = await response.json();
+
+          if (profile.rules_completed) {
+            await establishServerSession(token);
+            initializedUid = currentUser.uid;
+            authScreen.hidden = true;
+            document.body.classList.add("authenticated");
+            window.efootballUserToken = token;
+            statusBox.textContent = "";
+            window.dispatchEvent(new Event("efootball-auth-ready"));
+            await loadPlayersFromDatabase();
+          } else {
+            await startOnboarding(currentUser, token, profile);
+          }
+        } catch (e) {
+          initializedUid = null;
+          window.efootballUserToken = null;
+          document.body.classList.remove("authenticated");
+          authScreen.hidden = false;
+          statusBox.textContent = "Server bilan bog‘lanishda xato: " + e.message;
+        }
+      }
+    } finally {
+      authQueueRunning = false;
     }
-  } catch (e) {
-    statusBox.textContent = "Server bilan bog‘lanishda xato: " + e.message;
-  }
+  })();
 });
+/* EFHUB_HEADER_CONTROLS_V1 */
+(() => {
+  const byId = id => document.getElementById(id);
+  const drawer = byId("efDrawer");
+  const overlay = byId("efOverlay");
+  const searchPanel = byId("efSearch");
+  const headerSearch = byId("efSearchInput");
+  const playerSearch = byId("search");
+
+  function closeMenu() {
+    if (!drawer || !overlay) return;
+    drawer.classList.remove("open");
+    drawer.setAttribute("aria-hidden", "true");
+    overlay.hidden = true;
+  }
+
+  function openMenu() {
+    if (!drawer || !overlay) return;
+    drawer.classList.add("open");
+    drawer.setAttribute("aria-hidden", "false");
+    overlay.hidden = false;
+    byId("efDrawerClose")?.focus();
+  }
+
+  byId("efMenu")?.addEventListener("click", () => {
+    if (drawer?.classList.contains("open")) closeMenu();
+    else openMenu();
+  });
+
+  byId("efDrawerClose")?.addEventListener("click", closeMenu);
+  overlay?.addEventListener("click", closeMenu);
+
+  function openSearch() {
+    if (!searchPanel || !headerSearch) return;
+    searchPanel.hidden = false;
+    headerSearch.value = playerSearch?.value || "";
+    headerSearch.focus();
+  }
+
+  function closeSearch() {
+    if (searchPanel) searchPanel.hidden = true;
+  }
+
+  byId("efSearchBtn")?.addEventListener("click", openSearch);
+  byId("efSearchClose")?.addEventListener("click", closeSearch);
+
+  headerSearch?.addEventListener("input", () => {
+    if (!playerSearch) return;
+    playerSearch.value = headerSearch.value;
+    playerSearch.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  playerSearch?.addEventListener("input", () => {
+    if (headerSearch && document.activeElement !== headerSearch) {
+      headerSearch.value = playerSearch.value;
+    }
+  });
+
+  byId("efNotifications")?.addEventListener("click", () => {
+    alert("Xabarlar bo‘limi hozircha tayyorlanmoqda.");
+  });
+
+  document.querySelectorAll("#efNav [data-page]").forEach(button => {
+    button.addEventListener("click", () => {
+      if (button.disabled) return;
+
+      document.querySelectorAll("#efNav [data-page]").forEach(item => {
+        item.classList.toggle("active", item === button);
+      });
+
+      closeMenu();
+
+      if (button.dataset.page === "home") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (button.dataset.page === "players") {
+        byId("heading")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
+    });
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      closeMenu();
+      closeSearch();
+    }
+  });
+})();
+
 </script>
 \n</body>
 </html>

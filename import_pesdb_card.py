@@ -147,7 +147,7 @@ def build_payload(data):
         "playing_style": str(
             data.get("attacking_playing_style", "")
         ),
-        "image": str(data.get("image_url") or ""),
+        "image": f"/assets/player_cards/{source_player_id}.jpg",
         "release_date": ""
     }
 
@@ -263,7 +263,7 @@ def main():
         "--url",
         default=os.environ.get(
             "EFHUB_API",
-            "http://127.0.0.1:8001"
+            "https://efootball-hub-a8l3.onrender.com"
         )
     )
 

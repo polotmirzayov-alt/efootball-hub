@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory, render_template_
 import os
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -10,15 +10,17 @@ app = Flask(__name__)
 _firebase_app = None
 
 def _verify_firebase_user():
-    """Verify Firebase ID token from Authorization: Bearer header."""
+    """Verify a Firebase bearer token, or a session cookie on safe requests."""
     global _firebase_app
 
     auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return None
+    id_token = auth_header[7:].strip() if auth_header.startswith("Bearer ") else ""
 
-    id_token = auth_header[7:].strip()
-    if not id_token:
+    session_cookie = None
+    if request.method in ("GET", "HEAD", "OPTIONS") and not id_token:
+        session_cookie = request.cookies.get("efhub_session")
+
+    if not id_token and not session_cookie:
         return None
 
     service_account_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
@@ -41,13 +43,18 @@ def _verify_firebase_user():
                     options={"projectId": "efootballa-hub"}
                 )
 
-        decoded = auth.verify_id_token(id_token, app=_firebase_app)
-        return decoded
+        if id_token:
+            return auth.verify_id_token(id_token, app=_firebase_app)
+
+        return auth.verify_session_cookie(
+            session_cookie,
+            check_revoked=True,
+            app=_firebase_app
+        )
 
     except Exception as e:
-        app.logger.error("Firebase token tekshiruvi xato turi: %s", type(e).__name__)
+        app.logger.error("Firebase autentifikatsiya xatosi: %s", type(e).__name__)
         return None
-
 
 from hub import PLAYERS as HUB_PLAYERS, HTML as HUB_HTML
 
@@ -145,6 +152,65 @@ def _verify_completed_user():
 
     return user, None
 
+
+
+@app.route("/api/auth/session", methods=["POST"])
+def create_auth_session():
+    """Exchange a valid Firebase ID token for a short-lived secure cookie."""
+    origin = request.headers.get("Origin", "")
+    allowed_origin = os.environ.get(
+        "APP_ORIGIN", "https://efootball-hub-a8l3.onrender.com"
+    ).rstrip("/")
+
+    if origin.rstrip("/") != allowed_origin:
+        return jsonify({"error": "Ruxsat etilmagan manba"}), 403
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer ") or not auth_header[7:].strip():
+        return jsonify({"error": "Firebase Bearer token talab qilinadi"}), 401
+
+    user = _verify_firebase_user()
+    if not user:
+        return jsonify({"error": "Firebase kirishi tasdiqlanmadi"}), 401
+
+    if not USE_POSTGRES:
+        return jsonify({"error": "PostgreSQL talab qilinadi"}), 503
+
+    uid = user.get("uid")
+    if not uid:
+        return jsonify({"error": "Firebase UID topilmadi"}), 401
+
+    try:
+        profile = postgres_db.get_user_profile(uid)
+        if not profile or profile["rules_version"] < ONBOARDING_RULES_VERSION:
+            return jsonify({"error": "Avval onboarding qoidalarini bajaring"}), 403
+
+        from firebase_admin import auth
+
+        expires_in = timedelta(days=14)
+        id_token = auth_header[7:].strip()
+        session_cookie = auth.create_session_cookie(
+            id_token,
+            expires_in=expires_in,
+            app=_firebase_app
+        )
+
+        response = jsonify({"success": True})
+        response.headers["Cache-Control"] = "no-store"
+        response.set_cookie(
+            "efhub_session",
+            session_cookie,
+            max_age=int(expires_in.total_seconds()),
+            httponly=True,
+            secure=True,
+            samesite="Lax",
+            path="/"
+        )
+        return response
+
+    except Exception as e:
+        app.logger.error("Sessiya yaratish xatosi: %s", type(e).__name__)
+        return jsonify({"error": "Sessiya yaratib bo‘lmadi"}), 500
 
 @app.route("/api/onboarding/profile", methods=["GET", "POST"])
 def onboarding_profile():
@@ -1361,6 +1427,7 @@ def import_pesdb_cards_bulk():
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
     dump = lambda value: json.dumps(value, ensure_ascii=False)
     results = []
+    skipped = 0
     player_cache = {}
 
     try:
@@ -1372,7 +1439,8 @@ def import_pesdb_cards_bulk():
                         (p["source"], p["source_id"])
                     ).fetchone()
                     if existing:
-                        raise ValueError("Karta bazada mavjud: " + p["source_id"])
+                        skipped += 1
+                        continue
 
                     key = (p["name"].casefold(), p["nationality"].casefold(), p["club"].casefold())
                     player_id = player_cache.get(key)
@@ -1440,7 +1508,8 @@ def import_pesdb_cards_bulk():
                         (p["source"], p["source_id"])
                     ).fetchone()
                     if existing:
-                        raise ValueError("Karta bazada mavjud: " + p["source_id"])
+                        skipped += 1
+                        continue
 
                     key = (p["name"].casefold(), p["nationality"].casefold(), p["club"].casefold())
                     player_id = player_cache.get(key)
@@ -1497,7 +1566,7 @@ def import_pesdb_cards_bulk():
                     ))
                     results.append({"player_id": player_id, "card_id": card_id, "player_created": created})
 
-        return jsonify({"message": "Bulk import muvaffaqiyatli", "imported_cards": len(results), "results": results}), 201
+        return jsonify({"message": "Bulk import yakunlandi", "imported_cards": len(results), "skipped_existing": skipped, "results": results}), 201
 
     except ValueError as exc:
         return jsonify({"error": str(exc), "rolled_back": True}), 409

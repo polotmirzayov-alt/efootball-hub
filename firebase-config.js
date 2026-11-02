@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
 import {
-  getAuth,
+  initializeAuth,
+  browserLocalPersistence,
   GoogleAuthProvider,
   OAuthProvider
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
@@ -16,6 +17,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: browserLocalPersistence
+});
 export const googleProvider = new GoogleAuthProvider();
 export const appleProvider = new OAuthProvider("apple.com");

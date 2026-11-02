@@ -28,7 +28,7 @@ button,.select{background:#243447;color:#fff;border:1px solid #3b5065;border-rad
   display:block;
   background:#243447;
 ;padding:7px 10px;border-radius:7px;font-size:12px}
-.tabs{display:flex;gap:7px;overflow-x:auto;margin:12px 0}
+.card-photo{width:min(100%,300px);max-height:420px;object-fit:contain;margin:14px auto;border-radius:12px;border:2px solid #d4af37;background:#17212b}.tabs{display:flex;gap:7px;overflow-x:auto;margin:12px 0}
 .tabs button{white-space:nowrap}
 .tabs button.active{background:#d4af37;color:#111}
 .section-title{font-size:13px;color:#00c5d9;letter-spacing:1px;margin:17px 0 9px}
@@ -77,6 +77,7 @@ button,.select{background:#243447;color:#fff;border:1px solid #3b5065;border-rad
     <select id="cardSelect" style="width:100%;margin-top:8px">
       <option value="">Kartalar yuklanmoqda...</option>
     </select>
+    <img id="cardPhoto" class="card-photo hidden" alt="Tanlangan eFootball kartasi">
     <p id="cardStatus" class="muted">Karta ma’lumotlari yuklanmoqda...</p>
   </section>
 
@@ -220,6 +221,12 @@ async function loadPlayerCards(player) {
 }
 
 async function loadCardDetails(card) {
+  const cardPhoto = $("cardPhoto");
+  cardPhoto.classList.add("hidden");
+  cardPhoto.onload = () => cardPhoto.classList.remove("hidden");
+  cardPhoto.onerror = () => cardPhoto.classList.add("hidden");
+  if (card.image) cardPhoto.src = card.image;
+  else cardPhoto.removeAttribute("src");
   $("cardStatus").textContent = "Karta tafsilotlari yuklanmoqda...";
   $("rating").textContent = card.rating ?? "--";
   $("position").textContent = card.position || "--";
