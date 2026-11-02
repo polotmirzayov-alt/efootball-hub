@@ -152,13 +152,15 @@ def build_payload(data):
     }
 
     position_ratings = data.get("position_ratings")
-    if not isinstance(position_ratings, dict) or set(position_ratings) != set(POSITIONS):
-        raise ValueError(f"{name}: 13 ta pozitsiya reytingi to‘liq emas")
+    if position_ratings is None:
+        position_ratings = {}
+    elif not isinstance(position_ratings, dict) or set(position_ratings) != set(POSITIONS):
+        raise ValueError(f"{name}: pozitsiya reytinglari 13 ta bo‘lsa, barchasi bo‘lishi kerak")
     for pos, value in position_ratings.items():
         if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 105:
             raise ValueError(f"{name}: {pos} reytingi 0–105 oralig‘ida bo‘lishi kerak")
     primary = str(data["primary_position"]).strip().upper()
-    if position_ratings.get(primary) != rating:
+    if position_ratings and position_ratings.get(primary) != rating:
         raise ValueError(f"{name}: asosiy pozitsiya reytingi OVR bilan mos emas")
 
     physics = {

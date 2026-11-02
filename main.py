@@ -1428,6 +1428,7 @@ def import_pesdb_cards_bulk():
     dump = lambda value: json.dumps(value, ensure_ascii=False)
     results = []
     skipped = 0
+    updated_images = 0
     player_cache = {}
 
     try:
@@ -1435,10 +1436,15 @@ def import_pesdb_cards_bulk():
             with postgres_db.get_connection() as db:
                 for p in prepared:
                     existing = db.execute(
-                        "SELECT id FROM player_cards WHERE source=%s AND source_card_id=%s LIMIT 1",
+                        "SELECT id, player_id FROM player_cards WHERE source=%s AND source_card_id=%s LIMIT 1",
                         (p["source"], p["source_id"])
                     ).fetchone()
                     if existing:
+                        image_path = str(p["card"].get("image", ""))[:500]
+                        if image_path:
+                            db.execute("UPDATE player_cards SET image=%s WHERE id=%s", (image_path, existing["id"]))
+                            db.execute("UPDATE players SET image=%s WHERE id=%s", (image_path, existing["player_id"]))
+                            updated_images += 1
                         skipped += 1
                         continue
 
@@ -1504,10 +1510,15 @@ def import_pesdb_cards_bulk():
 
                 for p in prepared:
                     existing = db.execute(
-                        "SELECT id FROM player_cards WHERE source=? AND source_card_id=? LIMIT 1",
+                        "SELECT id, player_id FROM player_cards WHERE source=? AND source_card_id=? LIMIT 1",
                         (p["source"], p["source_id"])
                     ).fetchone()
                     if existing:
+                        image_path = str(p["card"].get("image", ""))[:500]
+                        if image_path:
+                            db.execute("UPDATE player_cards SET image=? WHERE id=?", (image_path, existing["id"]))
+                            db.execute("UPDATE players SET image=? WHERE id=?", (image_path, existing["player_id"]))
+                            updated_images += 1
                         skipped += 1
                         continue
 
@@ -1566,7 +1577,7 @@ def import_pesdb_cards_bulk():
                     ))
                     results.append({"player_id": player_id, "card_id": card_id, "player_created": created})
 
-        return jsonify({"message": "Bulk import yakunlandi", "imported_cards": len(results), "skipped_existing": skipped, "results": results}), 201
+        return jsonify({"message": "Bulk import yakunlandi", "imported_cards": len(results), "skipped_existing": skipped, "updated_images": updated_images, "results": results}), 201
 
     except ValueError as exc:
         return jsonify({"error": str(exc), "rolled_back": True}), 409
